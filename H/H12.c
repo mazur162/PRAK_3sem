@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
             msgrcv(msgid, (struct msgbuf*) (&Message), 258, 1, 0);  
             if (Message.Data[0]=='q' || Message.Data[0]=='Q') 
                 break;
-            printf("А: %s", Message.Data);
+            printf("A: %s", Message.Data);
         }
         return 0;
     }
