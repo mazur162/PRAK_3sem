@@ -9,7 +9,7 @@
 
 struct { 
     long mtype;
-    char Data[258];
+    char Data[258]; // 256 + '\n' + '\0'
 } Message;
 
 int main(int argc, char **argv) {

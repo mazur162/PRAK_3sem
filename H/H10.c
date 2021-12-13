@@ -41,7 +41,8 @@ main (int argc, char**argv) {
     char buf[MAX_STR_LEN];
     int n;
 
-    int input_file = open(argv[1], O_CREAT | O_TRUNC | O_WRONLY, 0666); // ИСПРАВЛЕНО
+    // ИСПРАВЛЕНО: указала права на создание файла
+    int input_file = open(argv[1], O_CREAT | O_TRUNC | O_WRONLY, 0666);
     if (input_file == -1) {
         printf("ERROR: Couldn't create input file\n");
         exit(1);
@@ -71,7 +72,8 @@ main (int argc, char**argv) {
     int str_counter = 0;
     int file = f1;
     int k;
-    while((n = read(input_file, buf, MAX_STR_LEN)) > 0) { // ИСПРАВЛЕНО
+    // ИСПРАВЛЕНО: было посимвольное чтение -> буферное чтение
+    while((n = read(input_file, buf, MAX_STR_LEN)) > 0) { 
         k = 0;
         for (int i = 0; i < MAX_STR_LEN; i++) {
             if (buf[i] == '\n') {
