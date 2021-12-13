@@ -58,10 +58,10 @@ num_symbols(unsigned long num){
 int
 different (int byte_num, int line_num, int *fd1, int *fd2, char *s1, char *s2) {
     char byte_num_str[byte_num / 10 + 1];
-    itoa(byte_num, byte_num_str, 10);
+    gcvt(byte_num, byte_num / 10 + 1, byte_num_str);
 
     char line_num_str[line_num / 10 + 1];
-    itoa(line_num, line_num_str, 10);
+    gcvt(line_num, line_num / 10 + 1, line_num_str);
 
     char *MSG = malloc(sizeof(*MSG) * (strlen(s1) + strlen(s2) + strlen(byte_num_str) + strlen(line_num_str) + 25));
     strcpy(MSG, s1);
