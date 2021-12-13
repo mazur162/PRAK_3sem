@@ -110,22 +110,42 @@ main(int argc, char **argv) {
     }
 
     char buf1[BUF_SIZE], buf2[BUF_SIZE];
-    unsigned long byte_num = 1, line_num = 1;
-    ssize_t n1, n2;
+    int byte_num = 1, line_num = 1;
+    int n1, n2;
     int flag = 0;
     while ((n1 = read(fd1, buf1, BUF_SIZE)) > 0 &&
             (n2 = read(fd2, buf2, BUF_SIZE)) > 0) {
         flag = 1;
         for (int i = 0; i < min(n1, n2); i++) {
-            if ((char)buf1[i] != (char)buf2[i]) {
+            if ((buf1[i] != buf2[i]) && (buf1[i]!= EOF) && (buf2[i] != EOF)) {
                 return different(byte_num, line_num, &fd1, &fd2, argv[1], argv[2]);
             }
             byte_num++;
-            if ((char)buf1[i] == '\n')
+            if (buf1[i] == '\n')
                 line_num++;
         }
-        if (n1 != n2) {
-            return different(byte_num + 1, line_num, &fd1, &fd2, argv[1], argv[2]);
+        if (n1 < n2) {
+            char *EOF_MSG = malloc(sizeof(*EOF_MSG) * (strlen(argv[1]) + 15));
+            strcpy(EOF_MSG, "cmp: EOF on ");
+            strcat(EOF_MSG, argv[1]);
+            strcat(EOF_MSG, "\n");
+            if (write(2, EOF_MSG, strlen(EOF_MSG))  != strlen(EOF_MSG)) {
+                exit(1);
+            }
+            free(EOF_MSG);
+            return 0;
+        }
+
+        if (n1 > n2) {
+            char *EOF_MSG = malloc(sizeof(*EOF_MSG) * (strlen(argv[2]) + 15));
+            strcpy(EOF_MSG, "cmp: EOF on ");
+            strcat(EOF_MSG, argv[2]);
+            strcat(EOF_MSG, "\n");
+            if (write(2, EOF_MSG, strlen(EOF_MSG))  != strlen(EOF_MSG)) {
+                exit(1);
+            }
+            free(EOF_MSG);
+            return 0;
         }
     }
     
