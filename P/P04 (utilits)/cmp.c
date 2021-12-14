@@ -4,9 +4,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <errno.h>
-
-#include <stdio.h>
-
 /*
     cmp filename1 filename2
 
@@ -75,6 +72,7 @@ different (int byte_num, int line_num, int *fd1, int *fd2, char *s1, char *s2) {
 
     if (write(2, MSG, strlen(MSG))  != strlen(MSG)) {
         exit(1);
+        free(MSG);
     }
     free(MSG);
 
@@ -117,7 +115,7 @@ main(int argc, char **argv) {
             (n2 = read(fd2, buf2, BUF_SIZE)) > 0) {
         flag = 1;
         for (int i = 0; i < min(n1, n2); i++) {
-            if ((buf1[i] != buf2[i]) && (buf1[i]!= EOF) && (buf2[i] != EOF)) {
+            if ((buf1[i] != buf2[i]) && (buf1[i]!= -1) && (buf2[i] != -1)) {
                 return different(byte_num, line_num, &fd1, &fd2, argv[1], argv[2]);
             }
             byte_num++;
@@ -126,10 +124,11 @@ main(int argc, char **argv) {
         }
         if (n1 < n2) {
             char *EOF_MSG = malloc(sizeof(*EOF_MSG) * (strlen(argv[1]) + 15));
-            strcpy(EOF_MSG, "cmp: EOF on ");
+            strcpy(EOF_MSG, "cmp: -1 on ");
             strcat(EOF_MSG, argv[1]);
             strcat(EOF_MSG, "\n");
             if (write(2, EOF_MSG, strlen(EOF_MSG))  != strlen(EOF_MSG)) {
+                free(EOF_MSG);
                 exit(1);
             }
             free(EOF_MSG);
@@ -138,10 +137,11 @@ main(int argc, char **argv) {
 
         if (n1 > n2) {
             char *EOF_MSG = malloc(sizeof(*EOF_MSG) * (strlen(argv[2]) + 15));
-            strcpy(EOF_MSG, "cmp: EOF on ");
+            strcpy(EOF_MSG, "cmp: -1 on ");
             strcat(EOF_MSG, argv[2]);
             strcat(EOF_MSG, "\n");
             if (write(2, EOF_MSG, strlen(EOF_MSG))  != strlen(EOF_MSG)) {
+                free(EOF_MSG);
                 exit(1);
             }
             free(EOF_MSG);

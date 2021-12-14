@@ -50,6 +50,7 @@ main(int argc, char **argv)
         strcat(NO_FILE, argv[1]);
         strcat(NO_FILE, ": No such file or directory\n");
         if (write(2, NO_FILE, strlen(NO_FILE)) != strlen(NO_FILE)) {
+            free(NO_FILE);
             exit(1);
         }
         free(NO_FILE);
@@ -82,6 +83,7 @@ main(int argc, char **argv)
         strcat(IDENT_FILES, argv[2]);
         strcat(IDENT_FILES, " are identical (not copied).\n");
         if (write(2, IDENT_FILES, strlen(IDENT_FILES))  != strlen(IDENT_FILES)) {
+            free(IDENT_FILES);
             exit(1);
         }
         free(IDENT_FILES);
