@@ -103,37 +103,39 @@ main(int argc, char **argv)
         return res;
     }
 
-    // DEFAULT: по умолчанию (если нет флагов), то мы выводим 10 последних строк
+// DEFAULT: по умолчанию (если нет флагов), 
+//то мы выводим 10 последних строк
     int from_end = 1;
     int num = 10;
+    char *end;
 
     if (argc == 3) {
-        char *end;
         num = strtol(argv[1], &end, 10);
 
         if (num > 0) {
             from_end = 0;
         }
+    } 
 
-        if (num == INT_MAX) {
-            const char *OUT_OF_DIAPASON = "tail: number of lines out of OUT_OF_DIAPASON\n";
-            if (write(2, OUT_OF_DIAPASON, strlen(OUT_OF_DIAPASON)) != strlen(OUT_OF_DIAPASON)) {
-                close(fd);
-                exit(1);
-            }
+    if (num == INT_MAX) {
+        const char *OUT_OF_DIAPASON = "tail: number of lines out of OUT_OF_DIAPASON\n";
+        if (write(2, OUT_OF_DIAPASON, strlen(OUT_OF_DIAPASON)) != strlen(OUT_OF_DIAPASON)) {
             close(fd);
             exit(1);
         }
-
-        if (*end != '\0') {
-            const char *WRONG_NUM = "tail: invalid number of lines\n";
-            if (write(2, WRONG_NUM, strlen(WRONG_NUM)) != strlen(WRONG_NUM)) {
-                close(fd);
-                exit(1);
-            }
-            close(fd);
-            exit(1);
-        }
+        close(fd);
+        exit(1);
     }
+
+    if (*end != '\0') {
+        const char *WRONG_NUM = "tail: invalid number of lines\n";
+        if (write(2, WRONG_NUM, strlen(WRONG_NUM)) != strlen(WRONG_NUM)) {
+            close(fd);
+            exit(1);
+        }
+        close(fd);
+        exit(1);
+    }
+
     return print_tail(&fd, from_end, num);
 }
