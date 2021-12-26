@@ -4,7 +4,9 @@
         "sstream": "c",
         "stdio.h": "c",
         "typeinfo": "cpp",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "complex": "c",
+        "ctype.h": "c"
     },
         "C_Cpp.formatting": "vcFormat",
         "editor.wordWrap": "wordWrapColumn",

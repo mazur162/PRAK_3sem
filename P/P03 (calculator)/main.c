@@ -175,7 +175,7 @@ main(void) {
     int num_of_variables = 0;
     int var_flag = 1;
 
-    // разбираем строку, формируем ПОЛИЗ:
+    // парсим строку, формируем ПОЛИЗ:
     while (str[cur_ptr] != '\0') {
 
         if (is_variable_letter(str[cur_ptr])) {  

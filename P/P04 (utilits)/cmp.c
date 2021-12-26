@@ -18,7 +18,7 @@
     (как в оригинальном cmp)
 */
 
-enum {BUF_SIZE = 208};
+enum {BUF_SIZE = 1024};
 
 ssize_t
 min(ssize_t a, ssize_t b) {
@@ -29,8 +29,8 @@ min(ssize_t a, ssize_t b) {
     }
 }
 
-int
-open_file(int *fd, char *filename) {
+long
+open_file(long *fd, char *filename) {
     *fd = open(filename, O_RDONLY);
     if (*fd == -1) {
         const char* NO_FILE = "cp: No such file or directory\n";
@@ -42,9 +42,9 @@ open_file(int *fd, char *filename) {
     return 0;
 }
 
-int
+long
 num_symbols(unsigned long num){
-    int count = 0;
+    long count = 0;
     while (num == 0) {
         num = num / 10;
         count++;
@@ -52,15 +52,15 @@ num_symbols(unsigned long num){
     return count;
 }
 
-int
-different (int byte_num, int line_num, int *fd1, int *fd2, char *s1, char *s2) {
+long
+different (long byte_num, long line_num, long *fd1, long *fd2, char *s1, char *s2) {
     char byte_num_str[byte_num / 10 + 1];
     gcvt(byte_num, byte_num / 10 + 1, byte_num_str);
 
     char line_num_str[line_num / 10 + 1];
     gcvt(line_num, line_num / 10 + 1, line_num_str);
 
-    char *MSG = malloc(sizeof(*MSG) * (strlen(s1) + strlen(s2) + strlen(byte_num_str) + strlen(line_num_str) + 25));
+    char *MSG = malloc(sizeof(*MSG) * (strlen(s1) + strlen(s2) + strlen(byte_num_str) + strlen(line_num_str) + 23));
     strcpy(MSG, s1);
     strcat(MSG, " ");
     strcat(MSG, s2);
@@ -98,7 +98,7 @@ main(int argc, char **argv) {
         }
         exit(1);
     }
-    int fd1, fd2, res;
+    long fd1, fd2, res;
     if ((res = open_file(&fd1, argv[1])) != 0) {
         return res;
     }
@@ -108,13 +108,19 @@ main(int argc, char **argv) {
     }
 
     char buf1[BUF_SIZE], buf2[BUF_SIZE];
-    int byte_num = 1, line_num = 1;
-    int n1, n2;
-    int flag = 0;
-    while ((n1 = read(fd1, buf1, BUF_SIZE)) > 0 &&
-            (n2 = read(fd2, buf2, BUF_SIZE)) > 0) {
+    long byte_num = 1, line_num = 1;
+    long n1, n2;
+    long flag = 0;
+    do {
+        n1 = read(fd1, buf1, BUF_SIZE);
+        n2 = read(fd2, buf2, BUF_SIZE);
+
         flag = 1;
-        for (int i = 0; i < min(n1, n2); i++) {
+        if (errno != 0) {
+            write(2, "cp: error while reading\n", 25);
+            exit(1);
+        }
+        for (long i = 0; i < min(n1, n2); i++) {
             if ((buf1[i] != buf2[i]) && (buf1[i]!= -1) && (buf2[i] != -1)) {
                 return different(byte_num, line_num, &fd1, &fd2, argv[1], argv[2]);
             }
@@ -123,8 +129,8 @@ main(int argc, char **argv) {
                 line_num++;
         }
         if (n1 < n2) {
-            char *EOF_MSG = malloc(sizeof(*EOF_MSG) * (strlen(argv[1]) + 15));
-            strcpy(EOF_MSG, "cmp: -1 on ");
+            char *EOF_MSG = malloc(sizeof(*EOF_MSG) * (strlen(argv[1]) + 13));
+            strcpy(EOF_MSG, "cmp: EOF on ");
             strcat(EOF_MSG, argv[1]);
             strcat(EOF_MSG, "\n");
             if (write(2, EOF_MSG, strlen(EOF_MSG))  != strlen(EOF_MSG)) {
@@ -136,18 +142,18 @@ main(int argc, char **argv) {
         }
 
         if (n1 > n2) {
-            char *EOF_MSG = malloc(sizeof(*EOF_MSG) * (strlen(argv[2]) + 15));
-            strcpy(EOF_MSG, "cmp: -1 on ");
+            char *EOF_MSG = malloc(sizeof(*EOF_MSG) * (strlen(argv[2]) + 13));
+            strcpy(EOF_MSG, "cmp: EOF on ");
             strcat(EOF_MSG, argv[2]);
             strcat(EOF_MSG, "\n");
-            if (write(2, EOF_MSG, strlen(EOF_MSG))  != strlen(EOF_MSG)) {
+            if (write(2, EOF_MSG, strlen(EOF_MSG)) != strlen(EOF_MSG)) {
                 free(EOF_MSG);
                 exit(1);
             }
             free(EOF_MSG);
             return 0;
         }
-    }
+    } while ((n1 > 0) && (n2 > 0));
     
     if (((n1 == 0 && (n2 = read(fd2, buf2, BUF_SIZE)) > 0) ||
             (n2 == 0 && n1 > 0)) && (flag == 1)) {

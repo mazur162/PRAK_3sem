@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <limits.h>
+#include <ctype.h>
 
 /*
     tail filename
@@ -22,7 +23,7 @@ open_file(int *fd, char *name)
         char *MSG = malloc(sizeof(*MSG) * (strlen(name) + 36));
         strcpy(MSG, "tail: ");
         strcat(MSG, name);
-        strcat(MSG, ": No such file or directory\n");
+        strcat(MSG, ": no such file or directory\n");
         if (write(2, MSG, strlen(MSG)) != strlen(MSG)) {
             free(MSG);
             exit(1);
@@ -54,19 +55,26 @@ print_tail(int *fd, int from_end, int num)
     }
     int count = 1;
     int can_write = 0;
-    while ((n = read(*fd, buf, BUF_SIZE)) > 0) {
+    while ((n = read(*fd, buf, BUF_SIZE)) != 0) {
+        if (n < 0) {
+            write(2, "tail: error while reading\n", 27);
+            close(*fd);
+            exit(1); 
+        }
         if (can_write == 0 && num > 1) for (int i = 0; i < n; i++) {
             if (buf[i] == '\n')
                 count++;
             if (count == num) {
                 can_write = 1;
                 if (write(1, buf + i + 1, n - i - 1) != n - i - 1) {
+                    write(2, "tail: error while writing\n", 27);
                     close(*fd);
                     exit(1);
                 }
                 break;
             }
         } else if (write(1, buf, n) != n) {
+            write(2, "tail: error while writing\n", 27);
             close(*fd);
             exit(1);
         }
@@ -96,46 +104,58 @@ main(int argc, char **argv)
 
     int fd, res;
     if (argc == 2) {
-        if ((res = open_file(&fd, argv[1])) != 0) {
-            return res;
+        if ((res = open_file(&fd, argv[1])) == -1) {
+            write(2, "tail: error opening file\n", 26);
+            close(fd);
+            exit(1);
         }
-    } else if ((res = open_file(&fd, argv[2])) != 0) {
-        return res;
+    } else if ((res = open_file(&fd, argv[2])) == -1) {
+        write(2, "tail: error opening file\n", 26);
+        close(fd);
+        exit(1);
     }
 
 // DEFAULT: по умолчанию (если нет флагов), 
 //то мы выводим 10 последних строк
     int from_end = 1;
-    int num = 10;
-    char *end;
+    int num = -10;
 
     if (argc == 3) {
+        char *end;
+        for (int i = 0; i < strlen(argv[1]); i++) {
+            if (!isdigit(argv[1][i])) {
+                if ((i != 0) || ((argv[1][0] != '-') && (argv[1][0] != '+'))) {
+                    write(2, "tail: wrong flag\n", 18);
+                    close(fd);
+                    exit(1);
+                }
+            }
+        }
         num = strtol(argv[1], &end, 10);
 
         if (num > 0) {
             from_end = 0;
         }
-    } 
 
-    if (num == INT_MAX) {
-        const char *OUT_OF_DIAPASON = "tail: number of lines out of OUT_OF_DIAPASON\n";
-        if (write(2, OUT_OF_DIAPASON, strlen(OUT_OF_DIAPASON)) != strlen(OUT_OF_DIAPASON)) {
+        if (num == INT_MAX) {
+            const char *OUT_OF_DIAPASON = "tail: number of lines out of OUT_OF_DIAPASON\n";
+            if (write(2, OUT_OF_DIAPASON, strlen(OUT_OF_DIAPASON)) != strlen(OUT_OF_DIAPASON)) {
+                close(fd);
+                exit(1);
+            }
             close(fd);
             exit(1);
         }
-        close(fd);
-        exit(1);
-    }
 
-    if (*end != '\0') {
-        const char *WRONG_NUM = "tail: invalid number of lines\n";
-        if (write(2, WRONG_NUM, strlen(WRONG_NUM)) != strlen(WRONG_NUM)) {
+        if (*end != '\0') {
+            const char *WRONG_NUM = "tail: invalid number of lines\n";
+            if (write(2, WRONG_NUM, strlen(WRONG_NUM)) != strlen(WRONG_NUM)) {
+                close(fd);
+                exit(1);
+            }
             close(fd);
             exit(1);
         }
-        close(fd);
-        exit(1);
     }
-
     return print_tail(&fd, from_end, num);
 }
