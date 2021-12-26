@@ -46,19 +46,27 @@ main(void)
             int size_word = 0, num_sym_in_word = 0;
             while (c != EOF && !isspace(c) && c != ';') {
                 if (num_sym_in_word == size_word) {
-                    size_word = (size_word == 0) ? (1) : (size_word * 2);
+                    if (size_word == 0) {
+                        size_word = 1;
+                    } else {
+                        size_word = size_word * 2;
+                    }
                     arg[argc - 1][num_arg] = realloc(arg[argc - 1][num_arg], size_word * sizeof(char));
                 }
                 arg[argc - 1][num_arg][num_sym_in_word] = c;
-                ++num_sym_in_word;
+                num_sym_in_word++;
                 c = getchar();
             }
             if (num_sym_in_word == size_word) {
-                size_word = (size_word == 0) ? (1) : (size_word * 2);
+                if (size_word == 0) {
+                    size_word = 1;
+                } else {
+                    size_word = size_word * 2;
+                }
                 arg[argc - 1][num_arg] = realloc(arg[argc - 1][num_arg], size_word * sizeof(char));
             }
             arg[argc - 1][num_arg][num_sym_in_word] = '\0';
-            ++num_arg;
+            num_arg++;
             while (c != EOF && isspace(c) && c != '\n') {
                 c = getchar();
             }
