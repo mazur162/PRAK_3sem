@@ -6,7 +6,8 @@
         "typeinfo": "cpp",
         "stdlib.h": "c",
         "complex": "c",
-        "ctype.h": "c"
+        "ctype.h": "c",
+        "fcntl.h": "c"
     },
         "C_Cpp.formatting": "vcFormat",
         "editor.wordWrap": "wordWrapColumn",
