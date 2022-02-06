@@ -15,7 +15,7 @@ struct Node {
 
 Написать функцию
 
-```
+```c
 struct Node *delete_all(struct Node *list, const char *str);
 ```
 
@@ -71,7 +71,7 @@ struct Node *delete_all(struct Node *list, const char *str);
 
 Дано определение типа звена односвязного списка строк
 
-```
+```c
 struct ListNode {
 	struct ListNode *next; /* указатель на следующее звено в списке */
 	char *elem; /* указатель на C-строку в динамической памяти*/
@@ -80,7 +80,7 @@ struct ListNode {
 
 Написать функцию
 
-```
+```c
 struct ListNode *process_list(struct ListNode *list, const char *str);
 ```
 
