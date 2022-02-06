@@ -13,6 +13,17 @@ struct Node {
 };
 ```
 
+
+
+```c
+
+struct Node {
+	struct Node *next;
+	char *elem;
+};
+
+```
+
 Написать функцию
 
 ```
