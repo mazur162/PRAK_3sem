@@ -766,6 +766,118 @@ int main (void) {
 3 5 8
 ```
 
+***Решение:***
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/wait.h>
+
+int main (int argc, char ** argv)
+{
+    int fd32[2];
+    int fd21[2];
+    int fd13[2];
+    pipe(fd32);
+    pipe(fd21);
+    pipe(fd13);
+    long long count;
+    scanf("%lld", &count);
+    long long a = 1, b = 1;
+    int pid1, pid2, pid3;
+
+    if ((pid1 = fork()) == 0)
+    {
+        if ((pid3 = fork()) == 0)
+        {
+            close(fd21[1]);
+            close(fd21[0]);
+            close(fd13[1]);
+            close(fd32[0]);
+            while (1) {
+                read(fd13[0], &a, sizeof(long long));
+                read(fd13[0], &b, sizeof(long long));
+  
+                if (b > count) {
+                    write(fd32[1], &a, sizeof(long long));
+                    write(fd32[1], &b, sizeof(long long));
+                    close(fd13[0]);
+                    close(fd32[1]);
+                    break;
+                }
+                printf("3 ");
+                printf("%lld %lld\n", a, b);
+                a = a + b;
+                write(fd32[1], &b, sizeof(long long));
+                write(fd32[1], &a, sizeof(long long));
+            }
+            exit(0);
+        }
+        close(fd32[0]);
+        close(fd32[1]);
+        close(fd21[1]);
+        close(fd13[0]);
+        while (1) {
+            read(fd21[0], &a, sizeof(long long));
+            read(fd21[0], &b, sizeof(long long));
+            //printf("%lld %lld \n", a, b);
+            if (b > count)
+            {
+                write(fd13[1], &a, sizeof(long long));
+                write(fd13[1], &b, sizeof(long long));
+                close(fd21[0]);
+                close(fd13[1]);
+                break;
+            }
+            printf("1 ");
+            printf("%lld %lld\n", a, b);
+            a = a + b;
+            write(fd13[1], &b, sizeof(long long));
+            write(fd13[1], &a, sizeof(long long)); 
+        }
+        wait(NULL);
+        exit(0);
+
+    }
+    if ((pid2 = fork()) == 0) {
+        close(fd13[0]);
+        close(fd13[1]);
+        close(fd32[1]);
+        close(fd21[0]);
+        while (1) {
+            read(fd32[0], &a, sizeof(long long));
+            read(fd32[0], &b, sizeof(long long));
+            if (b > count) {
+                write(fd21[1], &a, sizeof(long long));
+                write(fd21[1], &b, sizeof(long long));
+                close(fd32[0]);
+                close(fd21[1]);
+                break;
+            }
+            printf("2 ");
+            printf("%lld %lld\n", a, b);
+            a = a + b;
+            write(fd21[1], &b, sizeof(long long));
+            write(fd21[1], &a, sizeof(long long));
+        }
+        exit(0);
+    }
+    write(fd13[1], &a, sizeof(long long));
+    write(fd13[1], &b, sizeof(long long));
+    close(fd13[0]);
+    close(fd13[1]);
+    close(fd21[0]);
+    close(fd21[1]);
+    close(fd32[0]);
+    close(fd32[1]);
+    wait(NULL);
+    wait(NULL);
+    return(0);
+}
+```
+
 ### km01-3
 
 Программа должна создать три процесса. Первый созданный процесс должен обрабатывать только `IPv4`-адреса класса `А`, второй процесс - только `IPv4`-адреса класса `B`, третий процесс - только `IPv4` адреса класса `C`. Каждый из этих процессов извлекает из адреса номер сети и печатает класс сети (A, B или C) и номер сети на стандартный поток вывода в шестнадцатеричном виде. Процесс-родитель считывает со стандартного потока ввода `IP`-адреса,  записанные в десятично-точечной нотации, и передает их на обработку соответсвующему процессу-сыну. Для передачи данных должна использоваться разделяемая память и семафоры. Когда отец достигает конца стандартного потока ввода, сначала должны завершиться процессы-сыновья, затем процесс-отец. Созданные объекты `IPC` должны быть уничтожены.
@@ -801,17 +913,149 @@ struct ListItem *list_dup(const struct ListItem *list);
 
 Сдаваемый на проверку код должен содержать определение структуры `ListItem` и тело функции `list_dup`.
 
+***Решение:***
+
+```c
+struct ListItem {
+    struct ListItem *next;
+    char *str;
+};
+
+struct ListItem *list_dup(const struct ListItem *list) {
+    struct ListItem *begin = NULL, *tmp;
+    int flag = 1;
+    while (list != NULL) {
+        for (int i = 0; i< strlen(list->str); i++) {
+            if(list->str[i] < 'a' || list->str[i] >'z') {
+                flag = 0;
+                break;
+            }
+        }
+        if (flag) {
+            tmp = (struct ListItem *)malloc(sizeof(struct ListItem));
+            tmp->str = (char*)malloc(strlen(list->str)+1);
+            strcpy(tmp->str, list->str);
+            tmp->next = begin;
+            begin = tmp;
+        }
+        flag = 1;
+        list=list->next;
+    }
+    return begin;
+}
+```
+
 ### km02-2
 
 Программе предаётся два аргумента командной строки: имя бинарного файла `FILE` и положительное целое число `N`. Бинарный файл содержит 64-битные целые числа, но может быть пустым. В этом файле переставить числа, которые находятся на позициях `0`, `N`, `2N`, `3N`, ... и так далее до конца файла, в обратном порядке.
 
 Например, при `N == 2` в содержимом файла `{1, 2, 3, 4, 5}` в результате должен получиться файл `{5, 2, 3, 4, 1}`.
 
+***Решение:***
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/file.h>
+#include <unistd.h>
+#include <limits.h>
+#include <sys/wait.h>
+#include <errno.h>
+#include <signal.h>
+
+int main(int argc, char** argv)
+{
+    int fd;
+    fd = open(argv[1], O_WRONLY|O_CREAT|O_TRUNC, 0666);
+    long long tmp;
+    for(int i = 1; i< 6; i++)
+    {
+        tmp = (long long) i;
+        write(fd, &tmp, sizeof(long long));
+    }
+    close(fd);
+  
+    fd = open(argv[1], O_RDONLY);
+    while(read(fd, &tmp, sizeof(long long)))
+    {
+        printf("%lld ", tmp);
+    }
+    printf("\n");
+    close(fd);
+  
+  
+    long long first, second;
+    long long len, pos=0;
+    fd = open(argv[1], O_RDWR);
+    len = lseek(fd,0,2)/sizeof(long long);
+    lseek(fd,0,0);
+    int N;
+    sscanf(argv[2], "%d", &N);
+    long long back = len - len%N;
+    for (int i = 0; i < len/2; i++) {
+        if (i % N == 0) {
+            read(fd, &first, sizeof(long long));
+            pos = lseek(fd,0,1) - sizeof(long long);
+            lseek(fd, back*sizeof(long long), 0);
+            read(fd, &second, sizeof(long long));
+            lseek(fd, -sizeof(long long), 1);
+            write(fd, &first, sizeof(long long));
+            lseek(fd, pos, 0);
+            write(fd, &second, sizeof(long long));
+            lseek(fd, pos+ N*sizeof(long long), 0);
+            back = back-N;
+        }
+    }
+    close(fd);
+  
+  
+    fd = open(argv[1], O_RDONLY);
+    while(read(fd, &tmp, sizeof(long long))) {
+        printf("%lld ", tmp);
+    }
+    printf("\n");
+    close(fd);
+  
+    return 0;
+}
+```
+
 ### km03-1
 
 На стандартный поток ввода задаются два числа: `a` - 64-битное знаковое целое число в десятичном виде и `b` (`1 < b < 1000`) основание системы счисления - целое число в десятичном виде.
 
 На стандартный поток вывода напечатайте сумму цифр числа `a`, записанного в системе счисления по основанию `b`. Сумму цифр выведите в десятичной системе счисления. Число `a` может быть отрицательным.
+
+***Решение:***
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+int main (void)
+{
+    long long aa;
+    unsigned long long a;
+    unsigned b;
+    unsigned long long sum = 0;
+    scanf("%lld %u", &aa, &b);
+    a = labs(aa);
+    printf("%llu\n", a);
+    printf("%u\n", b);
+    while (a  != 0)
+    {
+        sum += a % b;
+        printf("%llu\n", a % b);
+        a = a /  b;  
+    }
+    printf("%llu\n", sum);
+
+    return 0;
+}
+```
 
 ### km03-2
 
@@ -829,15 +1073,84 @@ int proc(void) {
 
 Запишите **одно выражение** на языке C, в результате выполнения которой на стандартный поток вывода строка 1 была бы выведена 7 раз. В качестве программы сдайте `main`, содержащий только это выражение. В выражении можно использовать только операции языка Си и вызывать функцию `proc()` не более 4 раз.
 
+***Решение:***
+
+```c
+int k = proc() + proc() +  proc();
+```
+
 ### km03-3
 
 На стандартном потоке ввода подаётся последовательность символов, которая заканчивается с признаком конца ввода. Словом назовём последовательность строчный латинских букв ('a', ..., 'z'), идущих в тексте подряд, и максимально возможной длины.
 
 То есть, текст `"abcd"` содержит слово `"abcd"`, а не, например, два слова `"a"` и `"bcd"`. На стандартный поток вывода напечатайте длину самого длинного слова в тексте, не содержащего букву `'q'`. Если такого слова нет, выведите `0`.
 
+***Решение:***
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+int main (void)
+{
+    char c;
+    unsigned count = 0;
+    unsigned max = 0;
+    while ((c = getchar()) != EOF) {
+        if ('a'<= c && c <= 'z') {
+            if (c != 'q') {
+                count++;
+                if (count > max) {
+                    max = count;
+                }
+            }
+            else
+            {
+                count = 0;
+            }
+            printf("%u", count);
+        } else {
+            count = 0;
+        }
+    }
+    printf("\n");
+    printf("max = %u\n", max);
+}
+```
+
+
 ### km03-4
 
 В аргументах командной строки передаются числа в восьмеричной системе счисления в диапазоне от 1 до 64 (включительно), разделенные символом `','` (запятая). Рассматривайте эти числа как элементы множества в котором каждое число представляется одним битом, представляя множество в виде 64-битного беззнакового числа и на стандартный поток вывода выведите это число в шестнадцатеричном виде.
+
+***Решение:***
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+
+int main(int argc, char **argv)
+{
+    unsigned int arr[64] = {0};
+    for (int i = 1; i < argc; i = i + 2) {
+        int tmp;
+        sscanf(argv[i], "%o", &tmp);
+        arr[tmp - 1] = 1;
+    }
+    unsigned long long res = 0;
+    unsigned long long a = 1;
+    for (int i = 0; i < 64; i++) {
+        res = res + arr[i] * a;
+        a = a * 2;
+    }
+    printf("xeu = %llu\n", res);
+    printf("xeh = %llx\n", res);
+    return 0;
+}
+
+```
 
 ### km03-5
 
@@ -846,6 +1159,87 @@ int proc(void) {
 Программа должна создать два процесса сына, каждый из которых должен создать одного своего процесса-сына (внука основного процесса). Внук от первого сына отправляет внуку от второго сына значения `sin(x)` для всех точек `x0`, `x0 + dx`, ..., `x0 + n * dx` (всего n + 1 число), а внук от второго сына отправляет первому внуку значения `cos(x)` для всех этих точек. Внук от первого сына вычисляет сумму квадратов полученных чисел, а внук от второго сына - сумму модулей. Каждый из внуков выводит свой номер (1 или 2) и вычисленное число на стандартный поток вывода. Результат вычислений выводите не менее чем с 10 знаками мантиссы.
 
 Отец дожидается завершения работы всех созданных процессов и выводит на стандартный поток вывода два нуля.
+
+***Решение:***
+
+```c
+#include <stdio.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <math.h>
+#include <stdlib.h>
+
+int main (int argc, char **argv)
+{
+    double x;
+    sscanf(argv[1], "%lf", &x);
+    int n;
+    sscanf(argv[2], "%d", &n);
+    double dx;
+    sscanf(argv[3], "%lf", &dx);
+    int fd12[2];
+    int fd21[2];
+    pipe(fd12);
+    pipe(fd21);
+    double sq_sum;
+    double abs_sum;
+
+    if (!fork()) {
+        if (fork() == 0) {
+            close(fd12[0]);
+            close(fd21[1]);
+            double tmp, tmp1;
+            for (int i = 0; i < n; i++) {
+                tmp1 = sin(x + i * dx);
+                write(fd12[1], &tmp1, sizeof(double));
+                read(fd21[0], &tmp, sizeof(double));
+                sq_sum = sq_sum + (tmp * tmp);
+            }
+            printf("1: %.11g\n", sq_sum); //не знаю как написать мантиссу
+            close(fd12[1]);
+            close(fd21[0]);
+            exit(0);
+        }
+        wait(NULL);
+        close(fd12[0]);
+        close(fd21[1]);
+        close(fd12[1]);
+        close(fd21[0]);
+        exit(0);
+    }
+
+    if (!fork()) {
+        if (fork() == 0) {
+            close(fd12[1]);
+            close(fd21[0]);
+            double tmp, tmp1;
+            for (int i = 0; i < n; i++) {
+                tmp1 = cos(x + i * dx);
+                write(fd21[1], &tmp1, sizeof(double));
+                read(fd12[0], &tmp, sizeof(double));
+                abs_sum = abs_sum + fabs(tmp);
+            }
+        printf("2: %.11g\n", abs_sum);
+        close(fd12[0]);
+        close(fd21[1]);
+        exit(0);
+        }
+        close(fd12[0]);
+        close(fd21[1]);
+        close(fd12[1]);
+        close(fd21[0]);
+        wait(NULL);
+        exit(0);
+    }
+    close(fd12[0]);
+    close(fd21[1]);
+    close(fd12[1]);
+    close(fd21[0]);
+    wait(NULL);
+    wait(NULL);
+    printf("00\n");
+}
+```
 
 ## 2021
 
@@ -931,6 +1325,59 @@ void process(struct List *pl, const char *str);
 Организуйте вашу программу таким образом, чтобы избежать дублирование кода. В частности, запуск процесса и проверка статуса его завершения может быть вынесена в функцию.
 
  **Примечания по тестированию вашей программы:** . Тестирование завершается с вердиктом `'Synchronization error'`, если процесс-отец (то есть ваша программа, запускаемая на тестирование) заканчивает работу раньше какого-либо из своих потомков.
+
+***Решение:** (Хорошо работает, прошло все тесты. Только нужно вынести похожие куски кода в функцию, чтобы не было дублирования кода)*
+
+```c
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+int 
+main(int argc, char** argv) {
+    int status;
+
+    if (!fork()) {
+        if (!fork()) {
+            execlp(argv[1], argv[1], NULL);
+            return 127;
+        }
+        wait(&status);
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+            return 0;
+        }
+    
+        if (!fork()) {
+            execlp(argv[2], argv[2], NULL);
+            return 127;
+        }
+        wait(&status);
+        if (WIFEXITED(status)) {
+            return WEXITSTATUS(status);
+        }
+
+        return WTERMSIG(status);
+    }
+    wait(&status);
+
+    if ((WIFEXITED(status) && WEXITSTATUS(status) != 0) || WIFSIGNALED(status)) {
+        return 1;
+    }
+  
+    if (!fork()) {
+        execlp(argv[3], argv[3], NULL);
+        return 127;
+    }
+    wait(&status);
+
+    if ((WIFEXITED(status) && WEXITSTATUS(status) != 0) || WIFSIGNALED(status)) {
+        return 1;
+    }
+
+    return 0;
+}
+```
 
 ### km01-4
 
