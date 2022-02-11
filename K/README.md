@@ -1,4 +1,6 @@
-# ссоВсе задачи комиссий по практикуму
+# Все задачи комиссий по практикуму
+
+*Примечание: во всех задачах, где используется динамическая память, нужно проверять возвращаемое значение `malloc` (сравнить с `NULL`). Такой тест всегда есть. (Если, конечно, в условии задачи не сказано, что памяти всегда хватает)*
 
 ## 2015 - 2016
 
@@ -30,12 +32,110 @@ struct Node *delete_all(struct Node *list, const char *str);
 Для работы с файлом необходимо использовать функции низкоуровневого ввода-вывода. В памяти разрешается хранить не более 10 чисел из файла.
 Программа должна завершать своё выполнение с кодом возврата `0`.
 
+***Решение:***
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <ctype.h>
+
+int 
+main(void) {
+    int fd;
+    if ((fd = open("input.txt", O_RDONLY)) == -1) {
+        exit(1);
+    }
+    char filename1[10] = "tmpXXXXXX";
+    char filename2[10] = "tmpXXXXXX";
+    int tmp1 = mkstemp(filename1);
+    int tmp2 = mkstemp(filename2);
+
+    int num;
+
+    while (read(fd, &num, sizeof(num)) > 0) {
+        if (num < 0) {
+            write(tmp1, &num, sizeof(num));
+        } else {
+            write(tmp2, &num, sizeof(num));
+        }
+    }
+    close(fd);
+    if ((fd = open("input.txt", O_APPEND | O_TRUNC | O_RDWR)) == -1) {
+        exit(1);
+    }
+
+    lseek(fd, 0, SEEK_SET);
+    lseek(tmp1, 0, SEEK_SET);
+    while (read(tmp1, &num, sizeof(num)) > 0) {
+        write(fd, &num, sizeof(num));
+    }
+    lseek(tmp2, 0, SEEK_SET);
+    while (read(tmp2, &num, sizeof(num)) > 0) {
+        write(fd, &num, sizeof(num));
+    }
+
+    close(tmp1);
+    close(tmp2);
+    unlink(filename1);
+    unlink(filename2);
+    close(fd);
+    return 0;
+}
+
+```
+
 ### K1-15-16-3
 
 В аргументах командной строки программе передаются 3 параметра: `CMD1`, `CMD2` и файл `FILE3` (в указанном порядке). Реализуйте конвейер:
 `CMD | CMD2 > FILE3`
 
 Файл `FILE3` должен создаваться с правами на чтение и запись только для текущего пользователя. Основной процесс должен дожидаться завершения запущенных им процессов и только после этого завершаться с кодом возврата `0`.
+
+***Решение:***
+
+```c
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <string.h>
+
+int main(int argc, char **argv) {
+    pid_t pid;
+    int file;
+
+    file = open(argv[3], O_WRONLY | O_CREAT | O_TRUNC | O_RDONLY, 0600);
+
+    int fd[2];
+    pipe(fd);
+
+    pid = fork();
+    if (pid == 0) {
+        dup2(fd[1], 1);
+        close(fd[0]);
+        close(fd[1]);
+        execlp(argv[1], argv[1], NULL);
+        exit(2);
+    } else {
+        dup2(fd[0], 0);
+        dup2(file, 1);
+        close(fd[0]);
+        close(fd[1]);
+        execlp(argv[2], argv[2], NULL);
+        exit(3);
+    }
+
+    close(fd[0]);
+    close(fd[1]);
+    wait(NULL);
+    return 0;
+}
+
+```
 
 ### K1-15-16-4
 
@@ -91,6 +191,41 @@ struct ListNode *process_list(struct ListNode *list, const char *str);
 При удалении списка необходимо освобождать память, занимаемую элементов списка, так и хранящейся в нём строкой. Функция принимает указатель на начальное звено в списке и должна возвращать указатель на начальное звено модифицированного списка. В списке нет заглавного звена. Поле `elem` узлов списка и параметр `str` никогда не равны нулевому указателю.
 
 На проверку сдаётся только функция `process` и необходимые для неё директивы `#include`. Определение структуры `ListNode` и функция `main` из сдаваемого на проверку файла должны быть удалены или закомментированы.
+
+***Решение:***
+
+```c
+Elem *process (Elem *head) {
+    Elem *ptr;
+    int size = 100;
+    char *string = malloc(size * sizeof(char));
+    ptr = head;
+    do {
+        if (strcmp(string, ptr->str) == 0) {
+            (ptr->prev)->next = ptr->next;
+            (ptr->next)->prev = ptr->prev;
+            free(ptr->str);
+            free(ptr);
+        } else {
+            if (strlen(ptr->str) > size) {
+                size = size * 2;
+                string = realloc(string, size * sizeof(char));
+            }
+            strcpy(string, ptr->str);
+        }
+        ptr = ptr->next;
+    } while (ptr != head);
+    ptr = head;
+    Elem *max = ptr;
+    do {
+        if (strstr(max->str, ptr->str) >= 0) {
+            max = ptr;
+        }
+        ptr = ptr->next;
+    } while (ptr != head);
+    return max;
+}
+```
 
 ### com04-3
 
@@ -564,7 +699,7 @@ process(struct list_item **list, const char *s) {
         struct list_item *nextptr = ptr->next;
         if (strstr(ptr->str, s)) {
             for (int i = 0; i < strlen(ptr->str); i++) {
-                struct list_item *new = malloc(sizeof(struct list_item));
+		struct list_item *new = malloc(sizeof(struct list_item));
                 new->str = malloc(strlen(ptr->str) + 1);
                 strcpy(new->str, ptr->str);
   
@@ -573,6 +708,7 @@ process(struct list_item **list, const char *s) {
                 ptr->next = new;
                 new->next->prev = new;
             }
+
             if (ptr == last) {
                 last = nextptr->prev;
             }
