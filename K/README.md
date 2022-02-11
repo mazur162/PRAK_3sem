@@ -26,6 +26,42 @@ struct Node *delete_all(struct Node *list, const char *str);
 
 На проверку сдаётся только функция `delete_all` и необходимые для неё директивы `#include`. Определение структуры `Node` и функция `main` из сдаваемого на проверку файла должны быть удалены или закомментированы.
 
+***Решение:***
+
+```c
+struct Node *delete_all( struct Node *list, const char* str) {
+    struct Node* pred = list, *cur = list, *res = list;
+    //проходим по начальным звеньям списка до первого звена,
+    //которое не надо удалять
+    while ((cur!=NULL) && (strcmp(cur->elem, str) > 0)) {
+        res = cur->next;
+        free(cur->elem);
+        free(cur);
+        cur = res;
+    }
+    //поддерживаем два указателя - на предыдущий и
+    //текущий элементы списка
+    if (cur != NULL) {
+        pred = cur;
+        cur = cur->next;
+    }
+    while (cur != NULL) {
+        if (strcmp(cur->elem, str)>0) {
+            //удаляем звено и освобождаем память
+            pred->next = cur->next;
+            free(cur->elem);
+            free(cur);
+            cur = pred->next;
+        } else {
+            //просто переходим к следующему звену
+            pred = pred->next;
+            cur = cur->next;
+        }
+    }
+    return res;
+}
+```
+
 ### K1-15-16-2
 
 Программа должна обработать бинарный файл "`input.dat`", расположенный в текущем каталоге и содержащий 32-битные знаковые целые числа. Переставить в данном бинарном файле числа таким образом, чтобы сначала шли все отрицательные числа, а следом шли все неотрицательные числа. Порядок чисел одного знака неважен.
@@ -152,6 +188,62 @@ int main(int argc, char **argv) {
 `Process #id signaled by #sig`
 
 В любом случае процесс-родитель должен завершаться сразу после завершения сына. Процесс-родитель должен завершаться с кодом `0`.
+
+***Решение***:
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/file.h>
+#include <unistd.h>
+#include <limits.h>
+#include <sys/wait.h>
+#include <errno.h>
+#include <signal.h>
+
+int pid_son;
+void f(int sig) {
+    kill(pid_son, SIGINT);
+    wait(NULL);
+    printf("Process %d terminated\n", pid_son);
+    exit(1);
+}
+
+//для тестировнаия
+/*
+void f1(int sig)
+{
+    kill(pid_son, sig);
+}*/
+
+int main(int argc, char** argv) {
+    int N;
+    sscanf(argv[1], "%d", &N);
+    signal(SIGALRM, f);
+    //signal(SIGQUIT, f1);//для тестирования - Ctrl-бэкслэш
+    alarm(N);
+    if(!(pid_son = fork()))
+    {
+        execvp(argv[2], argv+2);
+        exit(1);
+    }
+    int s;
+    wait(&s);
+    signal(SIGALRM, SIG_IGN);
+    if (WIFEXITED(s)) {
+        printf("Process %d exited with code = %d\n", pid_son, WEXITSTATUS(s));
+        return 0;
+    }
+    if(WIFSIGNALED(s)) {
+        printf("Proccess %d signaled by sig = %d\n", pid_son, WTERMSIG(s));
+        return 0;
+    }
+    return 0;
+}
+```
 
 ### com04-1
 
@@ -470,6 +562,86 @@ STYPE bit_reverse(STYPE value);
 
 Главный процесс ожитает окончания всей системы процессов, выводит на стандартный поток вывода число 0 и символ `'\n'` и завершает работу с кодом `0`.
 
+***Решение:***
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/file.h>
+#include <unistd.h>
+#include <limits.h>
+#include <sys/wait.h>
+#include <errno.h>
+#include <signal.h>
+
+int main(int argc, char** argv)
+{
+    int fd12[2], fd24[2];
+    int count, modulo;
+    sscanf(argv[1], "%d", &count);
+    sscanf(argv[2], "%d", &modulo);
+    pipe(fd24);
+    if (!fork())//P1
+    {
+        pipe(fd12);
+        close(fd24[0]);
+        if (!fork())//P2
+        {
+            close(fd12[1]);
+            dup2(fd24[1],1);
+            dup2(fd12[0],0);
+            close(fd24[1]);
+            close(fd12[0]);
+            execlp(argv[3], argv[3], NULL);
+            exit(1);
+        }
+        close(fd24[1]);
+        close(fd12[0]);
+  
+        for(int i = 1; i <=count; i++ )
+        {
+            long long tmp1 = i*i;
+            int tmp = (tmp1)%modulo;
+            write(fd12[1], &tmp, sizeof(int));
+        }
+        close(fd12[1]);
+        wait(NULL);
+        exit(0);
+    }
+    if (!fork())//P3
+    {
+        close(fd24[1]);
+        if (!fork())//P4
+        {
+            char c;
+            while(read(fd24[0], &c, sizeof(char)))
+            {
+                if(c!=' ')
+                     printf("%c", c);
+                else
+                     printf("%c", '\n');
+                fflush(stdout);
+            }
+            close(fd24[0]);
+            exit(0);
+        }
+        close(fd24[0]);
+        wait(NULL);
+        exit(0);
+    }
+    close(fd24[1]);
+    close(fd24[0]);
+    wait(NULL);
+    wait(NULL);
+    printf("%d\n",0);
+    fflush(stdout);
+    return 0;
+}
+```
+
 ### com-18-18-01-3
 
 Программе в аргументах командной строки передаются имена файлов для обработки. Файлы могут содержать произвольные данные. Главный процесс должен создать по процессу на каждый обрабатываемый файл. Каждый процесс должен найти байт, который встречается чаще всего. Если таких байтов несколько, то выбирается меньший байт. Для каждого файла в аргументаз командной строки процесс родитель должен вывести на стандартный поток вывода значение наиболее часто встречающегося байта и число его повторений. Если файл пуст, то выводится два нуля. Значения должны выводиться в том же порядке, в котором заданы имена файлов в командной строке.
@@ -752,6 +924,47 @@ int main (void) {
 
 Например, если входной бинарный файл содержит байт `0x93`, и значение `MOD` равно `1000`, то в выходной бинарный файл должны быть записаны числа `1, 2, 55, 204`.
 
+***Решение:***
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/file.h>
+#include <unistd.h>
+#include <limits.h>
+#include <sys/wait.h>
+#include <errno.h>
+#include <signal.h>
+int main(int argc, char** argv)
+{
+    int mod;
+    sscanf(argv[3], "%d", &mod);
+    int f1 = open(argv[1], O_RDONLY);
+    int f2 = open(argv[2], O_WRONLY | O_APPEND | O_CREAT, 0666);
+    int x = 1;
+    unsigned char b, c;
+    while(read(f1, &c, 1)) {
+        while(c > 0) {
+            if (c & 1) {
+                int s = 0;
+                for(int i = 1; i <= x; i++)
+                    s = s + i*i;
+                s = s % mod;
+                write(f2, &s, sizeof(int));
+                printf("%d ", s);
+            }
+            c = c >> 1;
+            x++;
+        }
+    }
+    printf("\n");
+    return 0;
+}
+```
+
 ### km01-2
 
 Отец (процесс `P0`) порождает двух сыновей (`P1`, `P2`). Процесс `P1` порождает своего сына (`P3`), то есть внука процесса `P0`. Процессы связываются неименованными каналами `P3 -> P2`, `P2 -> P3`, `P1 -> P3`. Обмен данными в каналах ведется парами 64-битных знаковых целых чисел. Изначально процесс `P0` записывает процессу `P3` два числа `1`. После этого начинает работать передача данных по кругу (`P3 -> P2 -> P1 -> P3 -> ...`). Каждый процесс считывает из входного канала пару чисел (обозначим `A` и `B`), выводят свой порядковый номер (`1`, `2`, `3`) и два считанных числа из стандартного потока ввода, записывает в выходной канал числа `B`, `A + B`. Передача данных заканчивается, когда считанное число `B` превосходит значение заданное в командной строке. В этом случае ничего выводить не нужно. Для взаимодействия процессов использовать только неименованные каналы и `wait`. Процесс `P0` долден завершиться последним с кодом завершения `0`.
@@ -887,6 +1100,154 @@ int main (int argc, char ** argv)
 | `4.57.256.36`                              | `A 4`                             |
 | `130.44.124.158`                           | `B 22c`                           |
 | `200.51.236.160`                           | `C 633ee`                         |
+
+***Решение:***
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/file.h>
+#include <unistd.h>
+#include <limits.h>
+#include <sys/wait.h>
+#include <errno.h>
+#include <signal.h>
+#include <sys/sem.h>
+#include <sys/shm.h>
+#include <sys/ipc.h>
+
+int main(int argc, char** argv)
+{
+    unsigned a1,a2,a3,a4;
+    int pid1, pid2, pid3;
+    char c;
+    int key = 1234;
+    char *shmaddr;
+    struct sembuf op;
+    int shmid = shmget(key, 256, 0666|IPC_CREAT);
+    int semid = semget(key, 3, 0666|IPC_CREAT);
+    shmaddr = shmat(shmid, NULL, 0);
+    semctl(semid, 0, SETALL, (int)0);
+  
+    if(!(pid1 = fork()))
+    {
+        shmid = shmget(key, 256, 0);
+        semid = semget(key, 3, 0);
+        shmaddr = shmat(shmid, NULL,0);
+        op.sem_num = 0;
+        op.sem_flg = 0;
+        op.sem_op = -1;
+        printf("A\n");
+        while(semop(semid, &op, 1)!=-1)
+        {
+            sscanf(shmaddr, "%u %u %u", &a1, &a2, &a3);
+            printf("A %u %u %u\n", a1, a2, a3);
+            unsigned char a11 = a1;
+            a11 = a11 << 1;
+            a11 = a11 >> 1;
+            printf("A %x\n", a11);
+            semop(semid, &op, 1);
+        }
+        shmdt(shmaddr);
+        exit(0);
+    }
+    if(!(pid2 = fork()))
+    {
+        shmid = shmget(key, 256, 0);
+        semid = semget(key, 3, 0);
+        shmaddr = shmat(shmid, NULL,0);
+        op.sem_num = 1;
+        op.sem_flg = 0;
+        op.sem_op = -1;
+        printf("B\n");
+        while(semop(semid, &op, 1)!=-1)
+        {
+            sscanf(shmaddr, "%u %u %u", &a1, &a2, &a3);
+            printf("B %u %u %u\n", a1, a2, a3);
+            unsigned char a11 = a1, a22 = a2;
+            a11 = a11 << 2;
+            a11 = a11 >> 2;
+            printf("B %x%x\n", a11, a22);
+            op.sem_op = -1;
+            semop(semid, &op, 1);
+        }
+        shmdt(shmaddr);
+        exit(0);
+    }
+    if(!(pid3 = fork()))
+    {
+        shmid = shmget(key, 256, 0);
+        semid = semget(key, 3, 0);
+        shmaddr = shmat(shmid, NULL,0);
+        op.sem_num = 2;
+        op.sem_flg = 0;
+        op.sem_op = -1;
+        printf("C\n");
+        while(semop(semid, &op, 1)!=-1)
+        {
+            sscanf(shmaddr, "%u %u %u", &a1, &a2, &a3);
+            printf("C %u %u %u\n", a1, a2, a3);
+            unsigned char a11 = a1, a22 = a2, a33 = a3;
+            a11 = a11 << 3;
+            a11 = a11 >> 3;
+            printf("C %x%x%x\n", a11, a22, a33);
+            op.sem_op = -1;
+            semop(semid, &op, 1);
+        }
+        shmdt(shmaddr);
+        exit(0);
+    }
+    while(scanf("%u%c%u%c%u%c%u", &a1, &c, &a2, &c, &a3, &c, &a4) == 7)
+    {
+        printf("%u %u %u %u\n", a1, a2, a3, a4);
+        sprintf(shmaddr, "%u %u %u", a1, a2, a3);
+        if (a1<=127)
+        {
+            op.sem_num = 0;
+            op.sem_flg = 0;
+            op.sem_op = 2;
+            semop(semid, &op, 1);
+            op.sem_op = 0;
+            semop(semid, &op, 1);
+        }
+        else
+        {
+            if (a1 >=128 && a1<=191)
+            {
+                op.sem_num = 1;
+                op.sem_flg = 0;
+                op.sem_op = 2;
+                semop(semid, &op, 1);
+                op.sem_op = 0;
+                semop(semid, &op, 1);
+            }
+            else
+            {
+                if (a1 >=192 && a1<=223)
+                {
+                    op.sem_num = 2;
+                    op.sem_flg = 0;
+                    op.sem_op = 2;
+                    semop(semid, &op, 1);
+                    op.sem_op = 0;
+                    semop(semid, &op, 1);
+                }
+            }
+        }
+    }
+
+    shmdt(shmaddr);
+    shmctl(shmid, IPC_RMID, NULL);
+    semctl(semid, 0, IPC_RMID, (int)0);
+    wait(NULL);
+    wait(NULL);
+    wait(NULL);
+    return 0;
+}
+```
 
 ## 2020
 
