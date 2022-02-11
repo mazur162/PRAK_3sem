@@ -192,8 +192,6 @@ struct ListNode *process_list(struct ListNode *list, const char *str);
 
 На проверку сдаётся только функция `process` и необходимые для неё директивы `#include`. Определение структуры `ListNode` и функция `main` из сдаваемого на проверку файла должны быть удалены или закомментированы.
 
-***Решение:***
-
 ### com04-3
 
 Напишите функцию `mant_size` с прототипом
@@ -310,6 +308,74 @@ main(void) {
     return 0;
 }
 ```
+
+### 2
+
+Звено двусвязного списка объявлено следующим образом:
+
+```c
+struct Elem {
+    struct Elem *next, *prev;
+    char *str;
+};
+```
+
+Напишите функцию `process` с прототипом:
+
+```c
+struct Elem *process(struct Elem *head);
+```
+
+Функция `process` принимает указатель на голову закольцованного двусвязного списка (то есть списка, в котором звено, следующее за последним элементом - голова списка, а звено, предыдущее перед головой - хвост списка). Если в списке находятся несколько звеньев подряд с равными строками (полем `str`), оставьте только первое звено, а остальные удалите. При удалении звена должна удаляться память, занимаемая и звеном списка, и строкой. Таким образом, в списке-результате не должно быть равных звеньев, следующих подряд. В качестве результата функция должна вернуть указатель на звено, хранящее лексикографически максимальную строку. Если таких звеньев несколько, выбирается звено, находящееся ближе всего к голове при движении вперед. Указатель `str` звена списка никогда не равен `NULL`. Функции `process` может передаваться пустой список. Сдаваемый на проверку текст не должен содержать определения структуры `Elem` и функцию `main`.
+
+***Решение:***
+
+```c
+Elem *process (Elem *head) {
+    Elem *ptr;
+    int size = 100;
+    char *string = malloc(size * sizeof(char));
+    ptr = head;
+    do {
+        if (strcmp(string, ptr->str) == 0) {
+            (ptr->prev)->next = ptr->next;
+            (ptr->next)->prev = ptr->prev;
+            free(ptr->str);
+            free(ptr);
+        } else {
+            if (strlen(ptr->str) > size) {
+                size = size * 2;
+                string = realloc(string, size * sizeof(char));
+            }
+            strcpy(string, ptr->str);
+        }
+        ptr = ptr->next;
+    } while (ptr != head);
+    ptr = head;
+    Elem *max = ptr;
+    do {
+        if (strstr(max->str, ptr->str) >= 0) {
+            max = ptr;
+        }
+        ptr = ptr->next;
+    } while (ptr != head);
+    return max;
+}
+```
+
+### 3
+
+Запустить процессы в конфигурации, эквивалентной следующей команде `shell`:
+
+```c
+(CMD1 && CMD2) | (CMD3 ; CMD4) > FILE5
+```
+
+Аргументы `CMD1`, `CMD2`, `CMD3`, `CMD4`, `FILE5` задаются в командной строке в указанном порядке. Для запуска используйте `fork` и `execlp`. Использовать `system` или `/bin/sh` или аналогичные высокоуровневые средства запрещеною Запись `A && B` означает, что сначала выполняется команда `A`, а затем, только если `A` завершилась успешно, выполняется команда `B`. Запись `A ; B` означает последовательное выполнение команд `A` и `B`.
+
+### 4
+
+Программе в аргументах командной строки задаются `FILE` - имя входного бинарного файла и `P` - количество процессов для обработки данных. Входной бнарный файл содержит 32-битные целые беззнаковые числа в представлении Little-Endian (LE). Главный процесс должен создать `P` процессов, которые должны **параллельно** обработать файл `FILE`. Процесс с номером `i` (считая, что процессы нумеруются от нуля) вычисляет сумму чисел по модулю 2^32 на позициях `i`, `P + i`, `2*P + i`, ... в файле (позиции нумеруются от 0). После окончания обработки файла все процессы выводят на стандартный поток вывода по очереди в порядке возрастания номеров процессов накопившиюся у каждого процесса сумму. Родитель дожидается завершения всех созданных им процессов, выводит на стандартный поток вывода число `0` и сам завершает свою работу с кодом завершения `0`. Для синхронизации процессов использовать семафоры.
 
 ## 2017
 
@@ -437,6 +503,40 @@ void process (struct ListItem *head, const unsigned char *prefix);
 
 Программа, сдаваемая на процерку, должна содержать определение структуры `ListItem` и функцию `process`. Параметр `prefix` и поле `str` никогда не равны `NULL`.
 
+***Решение:***
+
+```c
+void process(struct ListItem *head, unsigned char *prefix) {
+	struct ListItem *ptr = head;
+	while (ptr != NULL) {
+		unsigned char *podstr;
+		if ((podstr = strstr(ptr->str, prefix)) != NULL) {
+			if (podstr == ptr->str) {
+				podstr += strlen(prefix);
+				char *strend;
+				int num = strtol(podstr, &strend, 10);
+		
+				// printf("%s %d\n", num, *podstr);
+				if (*strend == '\0') {
+					int count = 0;
+					while (count < num && ptr->next != NULL) {
+						struct ListItem *del = ptr->next;
+						ptr->next = del->next;
+						if (del->next != NULL) {
+							del->next->prev = ptr;
+						}
+						free(del->str);
+						free(del);
+						count++;
+					}
+				}
+			}
+		}
+		ptr = ptr->next;
+	}
+}
+```
+
 ### com02-2
 
 Программе в аргументах командной строки передаются два имени программы `PROG1` и `PROG2` для запуска.
@@ -446,6 +546,92 @@ void process (struct ListItem *head, const unsigned char *prefix);
 Процессу 2 от процесса 4 поступает поток 32-битных знаковых чисел в текстовом виде. Числа разделяются пробельными символами. Процесс 2 должен передать процессу 5 только четные целые числа в текстовом виде, разделяя их символом перевода строки.
 
 Главный процесс должен дождать завершения работы всей системы процессов, после чего завершиться с кодом `0`.
+
+***Решение:***
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <ctype.h>
+
+
+int main(int argc, char **argv) {
+    pid_t p1, p2, p3, p4, p5;
+    int fd42[2], fd25[2];
+    pipe(fd42);
+    pipe(fd25);
+  
+    if ((p1 = fork()) == 0) {
+        if ((p4 = fork()) == 0) {
+            dup2(fd42[1], 1);
+            close(fd42[0]);
+            close(fd42[1]);
+            execlp(argv[1], argv[1], NULL);
+            exit(127);
+        }
+        close(fd42[0]);
+        close(fd42[0]);
+        wait(NULL);
+        return 0;
+    }
+  
+  
+    if ((p2 = fork()) == 0) {
+        close(fd42[1]);
+        close(fd25[0]);
+        int len = 0;
+        char c, buf[34];
+        while (read(fd42[0], &c, 1) > 0) {
+            if (isspace(c)) {
+                buf[len] = '\n';
+                if (len > 0 && buf[len - 1] % 2 == 0) {
+                    write(fd25[1], buf, len + 1);
+                }
+                len = 0;
+            }
+            if (c >= '0' && c <= '9') {
+                buf[len] = c;
+                len++;
+            }
+        }
+        buf[len] = '\n';
+        if (len > 0 && buf[len - 1] % 2 == 0) {
+            write(fd25[1], buf, len + 1);
+        }
+        close(fd42[0]);
+        close(fd25[1]);
+        return 0;
+    }
+  
+    if ((p3 = fork()) == 0) {
+        if ((p5 = fork()) == 0) {
+            dup2(fd25[0], 0);
+            close(fd25[0]);
+            close(fd25[1]);
+            execlp(argv[2], argv[2], NULL);
+            exit (127);
+        }
+        close(fd25[0]);
+        close(fd25[1]);
+        wait(NULL);
+        return 0;
+    }
+  
+    close(fd25[0]);
+    close(fd25[1]);
+    close(fd42[0]);
+    close(fd42[1]);
+    wait(NULL);
+    wait(NULL);
+    wait(NULL);
+  
+    return 0;
+}
+
+```
 
 ### com02-3
 
@@ -459,6 +645,69 @@ void process (struct ListItem *head, const unsigned char *prefix);
 10 5
 12 1
 12 -3
+```
+
+***Решение:***
+
+```c
+#include <stdio.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <sys/types.h>
+
+int counter = 0;
+
+void sighndlr(int s) {
+	signal(SIGUSR1, sighndlr);
+	signal(SIGUSR2, sighndlr);
+	if (s == SIGUSR1) {
+		counter += 5;
+	} 
+
+	if(s == SIGUSR2) {
+		counter -= 4;
+	}
+	printf("%d %d\n", s, counter);
+	fflush(stdout);
+}
+
+int main (void) {
+	signal(SIGUSR1, sighndlr);
+	signal(SIGUSR2, sighndlr);
+
+	printf("%d\n", getpid());
+
+	pid_t p;
+	if ((p = fork()) == 0) {
+		while (1) {
+			usleep(123456);
+			if (counter < 0) {
+				break;
+			}
+		}
+		exit(0);
+	}
+	kill(p, SIGUSR1);
+	usleep(123456);
+	kill(p, SIGUSR2);
+	usleep(123456);
+	kill(p, SIGUSR2);
+
+	int status;
+	wait(&status);
+	if(WIFEXITED(status)) {
+		printf("%d\n", 	WEXITSTATUS(status));
+	}
+	if (WIFSIGNALED(status)) {
+		printf("%d\n", 	128 + WTERMSIG(status));
+	}
+	return 0;
+}
+
+
+
 ```
 
 ### km01-1
