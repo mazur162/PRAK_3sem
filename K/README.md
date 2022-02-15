@@ -33,7 +33,7 @@ struct Node *delete_all( struct Node *list, const char* str) {
     struct Node* pred = list, *cur = list, *res = list;
     //проходим по начальным звеньям списка до первого звена,
     //которое не надо удалять
-    while ((cur!=NULL) && (strcmp(cur->elem, str) > 0)) {
+    while ((cur != NULL) && (strcmp(cur->elem, str) > 0)) {
         res = cur->next;
         free(cur->elem);
         free(cur);
@@ -212,18 +212,10 @@ void f(int sig) {
     exit(1);
 }
 
-//для тестировнаия
-/*
-void f1(int sig)
-{
-    kill(pid_son, sig);
-}*/
-
 int main(int argc, char** argv) {
     int N;
     sscanf(argv[1], "%d", &N);
     signal(SIGALRM, f);
-    //signal(SIGQUIT, f1);//для тестирования - Ctrl-бэкслэш
     alarm(N);
     if(!(pid_son = fork()))
     {
