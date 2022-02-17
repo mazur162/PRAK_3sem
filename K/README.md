@@ -679,8 +679,6 @@ void process(struct ListItem *head, unsigned char *prefix) {
 				podstr += strlen(prefix);
 				char *strend;
 				int num = strtol(podstr, &strend, 10);
-	
-				// printf("%s %d\n", num, *podstr);
 				if (*strend == '\0') {
 					int count = 0;
 					while (count < num && ptr->next != NULL) {
@@ -1764,6 +1762,12 @@ main(int argc, char** argv) {
 Если на момент прихода сигнала ни одно простое число найдено не было, выводите `0`.
 
 Учтите, что стандартный поток вывода программы будет перенаправлен в `pipe`.
+
+***Решение:***
+
+```c
+
+```
 
 # Другие задачи
 
