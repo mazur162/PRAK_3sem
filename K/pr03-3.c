@@ -3,6 +3,9 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+// { cmd1 || cmd2 } && cmd3
+// Запись a || b означает то же самое, что !a?b:true. Запись a && b означает то же самое, что a?b:false. Скобки { и } используются для группировки.
+
 int 
 main(int argc, char** argv) {
     int status;
