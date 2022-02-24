@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "locale": "c",
+        "wait.h": "c"
+    }
+}
