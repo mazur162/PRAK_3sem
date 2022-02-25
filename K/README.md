@@ -33,7 +33,7 @@ struct Node *delete_all( struct Node *list, const char* str) {
     struct Node* pred = list, *cur = list, *res = list;
     //проходим по начальным звеньям списка до первого звена,
     //которое не надо удалять
-    while ((cur != NULL) && (strcmp(cur->elem, str) > 0)) {
+    while ((cur != NULL) && (strcmp(cur->elem, str) == 0)) {
         res = cur->next;
         free(cur->elem);
         free(cur);
@@ -2919,6 +2919,43 @@ main (void) {
 Процесс-родитель должен завершаться самым последним из всех процессов.
 
 Не используйте рекурсию!
+
+***Решение:***
+
+```c
+#include <sys/types.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/wait.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+int
+main(void)
+{
+    int N;
+    scanf("%d", &N);
+    int i;
+    for (i = 1; i <= N; i++) {
+        printf("%d", i);
+        fflush(stdout);
+        if (i < N) {
+            printf(" ");
+            fflush(stdout);
+            if (fork()) {
+                break;
+            }
+        } else {
+            break;
+        }
+    }
+    wait(NULL);
+    if (i == 1) {
+        printf("\n");
+    }
+}
+
+```
 
 ### pr01-5
 
