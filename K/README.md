@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
         execlp(argv[2], argv[2], NULL);
         exit(3);
     }
-
+    close(file);
     close(fd[0]);
     close(fd[1]);
     wait(NULL);
@@ -205,7 +205,7 @@ int main(int argc, char **argv) {
 #include <signal.h>
 
 int pid_son;
-void f(int sig) {
+void sig_hndr(int sig) {
     kill(pid_son, SIGINT);
     wait(NULL);
     printf("Process %d terminated\n", pid_son);
@@ -215,11 +215,11 @@ void f(int sig) {
 int main(int argc, char** argv) {
     int N;
     sscanf(argv[1], "%d", &N);
-    signal(SIGALRM, f);
+    signal(SIGALRM, sig_hndlr);
     alarm(N);
-    if(!(pid_son = fork()))
+    if (!(pid_son = fork()))
     {
-        execvp(argv[2], argv+2);
+        execvp(argv[2], argv[2]);
         exit(1);
     }
     int s;
@@ -430,17 +430,18 @@ int count(long long value) {
 #include <unistd.h>
 
 int main(int argc, char **argv) {
-    int fd = creat(argv[1], 0777);
-    for (int i = 1; i < 10; i++) {
-        double a = (double) i;
-        write(fd, &a, sizeof(a));
-    }
-    close(fd);
+   // cоздаём файл
+   // int fd = creat(argv[1], 0777);
+   // for (int i = 1; i < 10; i++) {
+      //  double a = (double) i;
+      //  write(fd, &a, sizeof(a));
+   // }
+   // close(fd);
     fd = open(argv[1], O_RDONLY);
     double buff;
-    while (read(fd, &buff, sizeof(buff))) {
-        printf("in = %lf\n", buff);
-    }
+    // while (read(fd, &buff, sizeof(buff))) {
+        // printf("in = %lf\n", buff);
+    // пше}
     close(fd);
     fd = open(argv[1], O_RDWR);
     int N;
