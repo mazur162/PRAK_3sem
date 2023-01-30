@@ -2329,7 +2329,7 @@ struct ListItem *to_front(struct List *lst, uint64_t value, size_t maxsize);
 То на стандартный поток вывода должно быть напечатано:
 
 ```txt
-1a
+1c
 3i
 ```
 
