@@ -1036,60 +1036,46 @@ int main(int argc, char **argv) {
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/wait.h>
-#include <sys/types.h>
 
-int counter = 0;
+int count = 0;
 
-void sighndlr(int s) {
-	signal(SIGUSR1, sighndlr);
-	signal(SIGUSR2, sighndlr);
-	if (s == SIGUSR1) {
-		counter += 5;
-	} 
+void
+handler(int sig)
+{
+    if (sig == SIGUSR1)
+    {
+        count += 5;
+    }
+    else if (sig == SIGUSR2)
+    {
+        count -= 4;
+    }
 
-	if(s == SIGUSR2) {
-		counter -= 4;
-	}
-	printf("%d %d\n", s, counter);
-	fflush(stdout);
+    printf("%d %d\n", sig, count);
+    fflush(stdout);
+
+    if (count < 0)
+    {
+        exit(0);
+    }
 }
 
-int main (void) {
-	signal(SIGUSR1, sighndlr);
-	signal(SIGUSR2, sighndlr);
+int
+main(void)
+{
+    signal(SIGUSR1, handler);
+    signal(SIGUSR2, handler);
 
-	printf("%d\n", getpid());
+    printf("%d\n", getpid());
+    fflush(stdout);
 
-	pid_t p;
-	if ((p = fork()) == 0) {
-		while (1) {
-			usleep(123456);
-			if (counter < 0) {
-				break;
-			}
-		}
-		exit(0);
-	}
-	kill(p, SIGUSR1);
-	usleep(123456);
-	kill(p, SIGUSR2);
-	usleep(123456);
-	kill(p, SIGUSR2);
+    while (1)
+    {
+        usleep(5);
+    }
 
-	int status;
-	wait(&status);
-	if(WIFEXITED(status)) {
-		printf("%d\n", 	WEXITSTATUS(status));
-	}
-	if (WIFSIGNALED(status)) {
-		printf("%d\n", 	128 + WTERMSIG(status));
-	}
-	return 0;
+    return 0;
 }
-
-
-
 ```
 
 ### 2014_2015_k2_4.
@@ -1316,34 +1302,34 @@ int main(int argc, char** argv)
 #include <fcntl.h>
 #include <sys/wait.h>
 
-int main (int argc, char ** argv)
+int
+main(int argc, char * argv[]) //p0
 {
-    int fd32[2];
-    int fd21[2];
-    int fd13[2];
-    pipe(fd32);
-    pipe(fd21);
-    pipe(fd13);
-    long long count;
-    scanf("%lld", &count);
-    long long a = 1, b = 1;
-    int pid1, pid2, pid3;
+	int fd32[2], fd21[2], fd13[2];
+	long long a = 1, b = 1, n = atoll(argv[1]);
+	int sll = sizeof(long long); 
 
-    if ((pid1 = fork()) == 0)
-    {
-        if ((pid3 = fork()) == 0)
+	pipe(fd32);
+	pipe(fd21);
+	pipe(fd13);
+
+	if (fork() == 0) // p1
+	{
+		if (fork() == 0) //p3
         {
             close(fd21[1]);
             close(fd21[0]);
             close(fd13[1]);
             close(fd32[0]);
-            while (1) {
-                read(fd13[0], &a, sizeof(long long));
-                read(fd13[0], &b, sizeof(long long));
+            while (1) 
+            {
+                read(fd13[0], &a, sll);
+                read(fd13[0], &b, sll);
   
-                if (b > count) {
-                    write(fd32[1], &a, sizeof(long long));
-                    write(fd32[1], &b, sizeof(long long));
+                if (b > n) 
+                {
+                    write(fd32[1], &a, sll);
+                    write(fd32[1], &b, sll);
                     close(fd13[0]);
                     close(fd32[1]);
                     break;
@@ -1351,48 +1337,54 @@ int main (int argc, char ** argv)
                 printf("3 ");
                 printf("%lld %lld\n", a, b);
                 a = a + b;
-                write(fd32[1], &b, sizeof(long long));
-                write(fd32[1], &a, sizeof(long long));
+                write(fd32[1], &b, sll);
+                write(fd32[1], &a, sll);
             }
             exit(0);
         }
-        close(fd32[0]);
+  
+		close(fd32[0]);
         close(fd32[1]);
         close(fd21[1]);
         close(fd13[0]);
-        while (1) {
-            read(fd21[0], &a, sizeof(long long));
-            read(fd21[0], &b, sizeof(long long));
-            //printf("%lld %lld \n", a, b);
-            if (b > count)
-            {
-                write(fd13[1], &a, sizeof(long long));
-                write(fd13[1], &b, sizeof(long long));
+  
+		while (1) 
+		{
+			read(fd21[0], &a, sll);
+			read(fd21[0], &b, sll);
+
+			if (b > n) 
+			{
+				write(fd13[1], &a, sll);
+                write(fd13[1], &b, sll);
                 close(fd21[0]);
                 close(fd13[1]);
-                break;
-            }
-            printf("1 ");
-            printf("%lld %lld\n", a, b);
-            a = a + b;
-            write(fd13[1], &b, sizeof(long long));
-            write(fd13[1], &a, sizeof(long long)); 
+				break;
+			}
+			printf("1 ");
+			printf("%lld %lld\n", a, b);
+			a = a + b;
+			write(fd13[1], &b, sll);
+            write(fd13[1], &a, sll); 
         }
-        wait(NULL);
-        exit(0);
+		wait(NULL);
+		exit(0);
+	}
 
-    }
-    if ((pid2 = fork()) == 0) {
-        close(fd13[0]);
+	if (fork() == 0) // p2
+	{
+		close(fd13[0]);
         close(fd13[1]);
         close(fd32[1]);
         close(fd21[0]);
-        while (1) {
-            read(fd32[0], &a, sizeof(long long));
-            read(fd32[0], &b, sizeof(long long));
-            if (b > count) {
-                write(fd21[1], &a, sizeof(long long));
-                write(fd21[1], &b, sizeof(long long));
+        while (1) 
+        {
+            read(fd32[0], &a, sll);
+            read(fd32[0], &b, sll);
+            if (b > n) 
+            {
+                write(fd21[1], &a, sll);
+                write(fd21[1], &b, sll);
                 close(fd32[0]);
                 close(fd21[1]);
                 break;
@@ -1400,22 +1392,26 @@ int main (int argc, char ** argv)
             printf("2 ");
             printf("%lld %lld\n", a, b);
             a = a + b;
-            write(fd21[1], &b, sizeof(long long));
-            write(fd21[1], &a, sizeof(long long));
+            write(fd21[1], &b, sll);
+            write(fd21[1], &a, sll);
         }
         exit(0);
     }
-    write(fd13[1], &a, sizeof(long long));
-    write(fd13[1], &b, sizeof(long long));
-    close(fd13[0]);
+
+	write(fd13[1], &a, sll);
+    write(fd13[1], &b, sll);
+  
+	close(fd13[0]);
     close(fd13[1]);
     close(fd21[0]);
     close(fd21[1]);
     close(fd32[0]);
     close(fd32[1]);
-    wait(NULL);
-    wait(NULL);
-    return(0);
+  
+	wait(NULL);
+	wait(NULL);
+
+	return 0;
 }
 ```
 
@@ -1781,31 +1777,41 @@ int k = proc() + proc() +  proc();
 #include <stdlib.h>
 #include <string.h>
 
-int main (void)
+int 
+main(void)
 {
-    char c;
-    unsigned count = 0;
-    unsigned max = 0;
-    while ((c = getchar()) != EOF) {
-        if ('a'<= c && c <= 'z') {
-            if (c != 'q') {
-                count++;
-                if (count > max) {
-                    max = count;
-                }
-            }
-            else
-            {
-                count = 0;
-            }
-            printf("%u", count);
-        } else {
-            count = 0;
-        }
-    }
-    printf("\n");
-    printf("max = %u\n", max);
+	char c;
+	int count = 0, maxx = 0, flag;
+
+	while ((c = getchar()) && (c != EOF))
+	{
+		if ((c >= 'a') && (c <= 'z'))
+		{
+			if ((c != 'q') && flag) 
+			{
+				count++;
+			}
+			else
+			{
+				//printf("\n q %d\n", count);
+				count = 0;
+				flag = 0;
+			}
+		}
+		else 
+		{
+			if (count > maxx) 
+			{
+				maxx = count;
+			}
+			//printf("\n ne bukva %d\n", count);
+			count = 0;
+			flag = 1;
+		}
+	}
+	printf("\n%d\n", maxx);
 }
+
 ```
 
 ### km03-4
@@ -1935,13 +1941,323 @@ int main (int argc, char **argv)
 
 На стандартном потоке ввода подаются 64-битные беззнаковые числа в шестнадцетеричной записи. На стандартный поток вывода напечатайте 64 числа в десятичной записи, каждое из который равно количеству чисел во входных данных у которых на соответсвующей позиции бит установлен. Первое число в выводе - это количество чисел во входных данных, у которых установлен бит 0 (младший бит), а последнее число в выводе - это количество чисел во входных данных, у которых установлен бит 63 (старший бит).
 
+```c
+#include <unistd.h>
+#include <stdio.h>
+
+enum
+{
+    COUNT = 64
+};
+
+int
+main(void)
+{
+    int64_t number, number_modif;
+    int bit_count[COUNT];
+  
+    for (int i = 0; i < COUNT; ++i)
+    {
+        bit_count[i] = 0;
+    }
+
+    while (scanf("%llx", &number) != EOF)
+    {
+        for (int i = 0; i < COUNT; ++i)
+        {
+            /* копируем значение number во вспомогательную переменную, чтобы не портить number */
+            number_modif = number;
+            if ((number_modif >> i) % 2 == 1)
+            {
+                bit_count[i] += 1;
+            }
+        }
+    }
+  
+    for (int i = 0; i < COUNT; ++i)
+    {
+        printf("%d\n", bit_count[i]);
+    }
+  
+    return 0;
+}
+
+```
+
 ### km01-2
 
 В аргументе командной строки задается имя бинарного регулярного файла. Бинарный файл содержит 128-битные беззнаковые числа, записанные в порядке Big-Endian (то есть старший байт числа в памяти хранится по меньшему адресу). Отсортируйте числа в порядке возрастания и запишите результат в этот же файл. Размер файла кратен 16 байтам. В файле может находиться не более 2097152 чисел. Глобальные (`static`) переменные использовать запрещено. Памяти достаточно для чтения всего файла в память.
 
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+int 
+compare(const void *arg1, const void *arg2)
+{
+    return strncmp((char *) arg1, (char *) arg2, 16);
+    // char* a1 = (char *) arg1;
+    // char* a2 = (char *) arg2;
+    // int i;
+    // for (i = 0; i < 16; i++) 
+    // {
+    //     if (*a1 < *a2)
+    //     {
+    //         return -1;
+    //     }
+    //     else if (*a1 > *a2)
+    //     {
+    //         return 1;
+    //     }
+    //     a1++;
+    //     a2++;
+    // }
+    // return 0;
+}
+
+
+int 
+main(int argc, char* argv[]) 
+{
+    long long len, i;
+    //unsigned char q;
+    unsigned char c[16];
+    unsigned char* arr = (unsigned char *) malloc(33554432);
+    FILE* f;
+/*
+    f = fopen(argv[1], "wb");
+    for (q = 48; q > 0; q--)
+    {
+        fwrite(&q, 1, 1, f);
+    }
+    fclose(f);
+    */
+    f = fopen(argv[1], "rb");
+    len = 0;
+    while (fread(&c, 1, 16, f) == 16)
+    {
+        for (i = 0; i < 16; i++)
+        {
+            arr[len*16 + i] = c[i]; // memcpy(arr + len*16, c, 16)  
+        }
+        len++;
+    }
+    fclose(f);
+  
+    qsort(arr, len, 16, compare);
+
+    f = fopen(argv[1], "wb");
+    fwrite(arr, 1, len*16, f);
+    fclose(f);
+
+    return 0;
+}
+
+
+```
+
 ### km01-3
 
 В аргументах командной строки задается 64-битное беззнаковое число `M`, имя программы для запуска `PROG`. Ваша программа должна запустить `PROG`, передав ей на стандартный поток ввода последовательности чисел `0, 1, 4, 9, 16, ... (M - 1)^2` (то есть последовательность квадратов чисел от `0` до `M - 1` в десятичном виде, числа разделяются пробельными символами). Программа должна считать последовательность 64-битных беззнаковых чисел, которые программа `PROG` выводит на стандартный поток вывода, и на стандартный поток вывода напечатать их сумму. Для взаимодействия вашей программы и программы `PROG` используйте неименованные каналы. Программу `PROG` запускайте с помощью `execlp`. Процесс-родитель должен завершиться после всех созданных им процессов с кодом завершения `0`.
+
+```c
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/wait.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+
+
+int 
+main(int argc, char **argv) 
+{
+    // int status;
+    int fd1[2], fd2[2];
+  
+    pipe(fd1);
+    pipe(fd2);
+
+    if (fork() == 0)
+    {
+        dup2(fd1[0], 0);
+        close(fd1[0]);
+        close(fd1[1]);
+
+        close(fd2[0]);
+        dup2(fd2[1], 1);
+        close(fd2[1]);
+
+        // execlp(argv[2], argv[2], NULL);
+        int q;
+        char buf[16];
+        unsigned long long n = 0, i;
+        while (q = read(0, buf, 16))
+        {
+            for (i = 0; i < q; i++)
+            {
+                if (buf[i] == ' ')
+                {
+                    write(1, &n, sizeof(unsigned long long));
+                    n = 0;
+                }
+                else
+                {
+                    n = n * 10 + buf[i] - '0';
+                }
+            }
+        }
+        write(1, &n, sizeof(unsigned long long));
+        exit(0);
+    }
+
+
+    close(fd1[0]);
+    close(fd2[1]);
+
+    char buf[20];
+    // 19 18 17 => len (=3)
+    // write(fd1[1], buf+20-len)
+
+
+    unsigned long long i;
+    unsigned long long M = atoll(argv[1]);
+    unsigned long long k;
+    int len;
+    char g = ' ';
+
+    for (i = 0; i < M-1; i++)
+    {
+        for (k = 0; k < 20; k++)
+        {
+            buf[k] = 0;
+        }
+
+        k = i * i;
+        len = 1;
+        buf[20-len] = k % 10 + '0';
+        k = k / 10;
+    
+        while (k) 
+        {
+            len++;
+            buf[20-len] = k % 10 + '0';
+            k = k / 10;
+        }
+
+        write(fd1[1], ((char*) buf)+20-len, len);
+        write(fd1[1], &g, 1);
+
+
+        // dprintf(fd1[1], "%llu ", i*i);
+
+    }
+
+    // dprintf(fd1[1], "%llu", i*i);
+    for (k = 0; k < 20; k++)
+        {
+            buf[k] = 0;
+        }
+    k = i * i;
+    len = 1;
+    buf[20-len] = k % 10 + '0';
+    k = k / 10;
+  
+    while (k) 
+    {
+        len++;
+        buf[20-len] = k % 10 + '0';
+        k = k / 10;
+    }
+    write(fd1[1], ((char*) buf)+20-len, len);
+
+    close(fd1[1]);
+
+    // int q;
+    // char buf[16];
+    // unsigned long long n = 0;
+
+    // while (q = read(fd2[0], buf, 16))
+    // {
+    //     for (i = 0; i < q; i++)
+    //     {
+    //         if (buf[i] == ' ')
+    //         {
+    //             printf("%llu\n", n);
+    //             n = 0;
+    //         }
+    //         else
+    //         {
+    //             n = n * 10 + buf[i] - '0';
+    //         }
+    //     }
+    // }
+    // close(fd2[0]);
+
+    unsigned long long s = 0;
+    while (read(fd2[0], &i, sizeof(unsigned long long)))
+    {
+        s += i;
+    
+    }
+    printf("%llu\n", s);
+    close(fd2[0]);
+
+    // printf("QQ\n");
+
+    wait(NULL);
+
+
+
+
+    //     dup2(fd[1], 1); // 
+    //     close(fd[1]);
+    
+    //     exit(127);
+    //     }
+
+    //     wait(&status);
+    //     if (WIFEXITED(status) && WEXITSTATUS(status) == 0) 
+    //     {
+    //        if (fork()==0) // gson2
+    //        { 
+    //            dup2(fd[1], 1);
+    //            close(fd[1]);
+    //            execlp(argv[2], argv[2], NULL);
+    //            exit(127);
+    //        }
+    //     }
+    //     close(fd[1]);  // проверять !!!
+
+    //     wait(&status); // while (wait(NULL) > 0) {;}
+    //     exit(0);
+    // }
+
+    //     pipe()
+
+    // close(fd[1]);// особое внимание
+    // if (fork()==0) {  // son2
+    //     int file_out;
+    //     dup2(fd[0], 0);
+    //     close(fd[0]);
+    //     file_out = open(argv[5], O_WRONLY | O_APPEND | O_CREAT, 0666);
+    //     dup2(file_out, 1);
+    //     close(file_out);
+    //     execlp(argv[3], argv[3], NULL);
+    //     exit(127);
+    // }
+    // close(fd[0]);
+  
+  
+    // wait(&status); // while (wait(NULL) > 0) {;}
+    // wait(&status);
+    return 0;
+}
+
+```
 
 ### km01-1
 
@@ -2014,7 +2330,7 @@ void process(struct List *pl, const char *str);
 
  **Примечания по тестированию вашей программы:** . Тестирование завершается с вердиктом `'Synchronization error'`, если процесс-отец (то есть ваша программа, запускаемая на тестирование) заканчивает работу раньше какого-либо из своих потомков.
 
-***Решение:** (Хорошо работает, прошло все тесты. Только нужно вынести похожие куски кода в функцию, чтобы не было дублирования кода)*
+***Решение:** (Хорошо работает, прошло все тесты)*
 
 ```c
 #include <stdlib.h>
@@ -2023,25 +2339,33 @@ void process(struct List *pl, const char *str);
 #include <sys/wait.h>
 
 int 
-main(int argc, char** argv) {
+main(int argc, char** argv) 
+{
     int status;
 
-    if (!fork()) {
-        if (!fork()) {
+    if (fork() == 0) 
+    {
+        if (fork() == 0) 
+        {
             execlp(argv[1], argv[1], NULL);
             return 127;
         }
         wait(&status);
-        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+    
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) 
+        {
             return 0;
         }
   
-        if (!fork()) {
+        if (fork() == 0) 
+        {
             execlp(argv[2], argv[2], NULL);
             return 127;
         }
         wait(&status);
-        if (WIFEXITED(status)) {
+    
+        if (WIFEXITED(status)) 
+        {
             return WEXITSTATUS(status);
         }
 
@@ -2049,17 +2373,20 @@ main(int argc, char** argv) {
     }
     wait(&status);
 
-    if ((WIFEXITED(status) && WEXITSTATUS(status) != 0) || WIFSIGNALED(status)) {
+    if ((WIFEXITED(status) && WEXITSTATUS(status) != 0) || WIFSIGNALED(status)) 
+    {
         return 1;
     }
   
-    if (!fork()) {
+    if (fork() == 0) 
+    {
         execlp(argv[3], argv[3], NULL);
         return 127;
     }
     wait(&status);
 
-    if ((WIFEXITED(status) && WEXITSTATUS(status) != 0) || WIFSIGNALED(status)) {
+    if ((WIFEXITED(status) && WEXITSTATUS(status) != 0) || WIFSIGNALED(status)) 
+    {
         return 1;
     }
 
@@ -2088,64 +2415,72 @@ main(int argc, char** argv) {
 ***Решение:***
 
 ```c
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/wait.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-
-// ( cmd1 < file1 && cmd2 ) | cmd3 >> file2
-// cmd1  пишет в fd[1], а cmd3 еще не читает. Возможно переполнение
-// wait
-// cmd2  cmd3
-
-
-int main(int argc, char **argv) {
+int 
+main(int argc, char *argv[]) 
+{
     int status;
-    int in, out;
     int fd[2];
+  
     pipe(fd);
-    if (fork() == 0) { // son1  !!!
-        close(fd[0]);
-        if (fork() == 0) { // gson1
-            in = open(argv[4], O_RDONLY);
-            dup2(in, 0);
-            close(in);
-            dup2(fd[1], 1);
-            close(fd[1]);
+  
+    /* brackets */
+    if (fork() == 0) 
+    {
+        dup2(fd[1], 1);
+        close(fd[1]);
+        close(fd[0]); 
+    
+		/* gson1 */
+        if (fork() == 0) 
+        { 
+            int file_in = open(argv[4], O_RDONLY);
+            dup2(file_in, 0);
+            close(file_in);
+        
             execlp(argv[1], argv[1], NULL);
             exit(127);
         }
-
         wait(&status);
-        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
-           if (fork()==0) { // gson2
-               dup2(fd[1], 1);
-               close(fd[1]);
+    
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) 
+        {
+           /* gson2 */
+           if (fork() == 0)
+           { 
                execlp(argv[2], argv[2], NULL);
                exit(127);
            }
+           wait(&status); 
         }
-        close(fd[1]);  // проверять !!!
-       while (wait(NULL) > 0) {;}
-       exit(0);
+    
+        exit(0);
     }
-    close(fd[1]);// особое внимание
-    if (fork()==0) {  // son2
+
+    close(fd[1]);
+  
+    /* son2 */
+    if (fork() == 0) 
+    {
+        int file_out;
         dup2(fd[0], 0);
         close(fd[0]);
-        out = open(argv[5], O_WRONLY | O_APPEND | O_CREAT, 0666);
-        dup2(out, 1);
-        close(out);
+    
+        file_out = open(argv[5], O_WRONLY | O_APPEND | O_CREAT, 0666);
+        dup2(file_out, 1);
+        close(file_out);
+    
         execlp(argv[3], argv[3], NULL);
         exit(127);
     }
+  
     close(fd[0]);
-    while (wait(NULL) > 0) {;}
+  
+    wait(&status);
+    wait(&status);
+  
     return 0;
 }
+
 ```
 
 ### km01-5
@@ -2172,16 +2507,18 @@ int main(int argc, char **argv) {
 #include <fcntl.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <math.h>
+#include <string.h>
 
-int simple_num = 0;
-int count = 1;
+volatile long long simple_num = 0;
+volatile int count = 1;
 
 void
 SigHndlr1(int s) {
     if (count == 4) {
         _exit(0);
     }
-    printf("%d\n", simple_num);
+    printf("%lld\n", simple_num);
     count++;
     signal(SIGINT, SigHndlr1); // возобновляю обработчик сигнала
 }
@@ -2192,27 +2529,69 @@ SigHndlr2(int s) {
 }
 
 int
-main(void) {
-    int i, j;
-    int low, high;
-    scanf("%d%d", &low, &high);
-    printf("%d\n", getpid());
+main(void) 
+{
+    long long i, j, low, high, k;
+    int flag;
+    scanf("%lld%lld", &low, &high);
 
     signal(SIGINT, SigHndlr1);
     signal(SIGTERM, SigHndlr2);
 
-    for (i = low; i < high; i++) {
-        int flag = 0;
-        for (j = 2; j < i; j++) {
-            if (i % j == 0) {
-                flag = 1;
-                break;
+    printf("%d\n", getpid());
+
+    if (low < 2) 
+    {
+        low = 2;
+    }
+
+    if (low >= high) 
+    {
+        printf("-1\n");
+        return 0;
+    }
+
+    char *primes = (char *) malloc(sizeof(char)*high); // char primes[high];
+    if (primes == NULL) 
+    {
+        printf("QKRQ\n");
+        return -1;
+    }
+  
+    memset(primes, 0, high);
+    for (i = 0; i < high; i++) 
+    {
+        if (primes[i])
+           printf("QQ\n");
+    }
+
+    for (i = 2; i < high; i++) 
+    {
+        if (!primes[i])
+        {
+            if (i >= low) 
+            {
+                simple_num = i;
+                printf("%lld\n", simple_num);
+            }
+            for (j = i; j < high; j += i) 
+            {
+                primes[j] = -1;
             }
         }
-        if (flag == 0) {
-            simple_num = i;
-        }
     }
+    free(primes);
+  
+    // for (i = low; i < high; i++) {
+    //     flag = 0;
+    //     k = sqrt(abs(i)) + 1;
+    //     for (j = 2; (j < k) && !flag; j += 1) {
+    //         flag = !(i % j);
+    //     }
+    //     if (!flag) {
+    //         simple_num = i;
+    //     }
+    // }
 
     printf("-1\n");
     return 0;
@@ -2523,7 +2902,7 @@ int main(int argc, char **argv)
               printf("%u\n", *p);
               fflush(stdout);
               struct sembuf up = {0, 1, 0};
-              semop(semid, &up, 1);     
+              semop(semid, &up, 1);   
            }
        }   
         shmdt(p); // не обязательно, но культурнее
@@ -2539,6 +2918,208 @@ int main(int argc, char **argv)
 }
 
 ```
+
+## 2023
+
+Задачи комиссии 2023 года:
+
+- *18 февраля*:
+
+### 1
+
+Функции передается строка вида `abcd,aaaaaa,qwerty,arctg`. Функция переставляет 1 и 2 слово местами, 3 и 4 и тд. Cлов четное количество. Строка не пустая но может быть пустой.
+
+***Пример:***
+
+***Вызов функции:*** `void swapstr(char *str);`
+
+***Ввод:*** `ABC,mma,abc777,ebd`
+
+***Вывод:*** `mma,ABC,ebd,abc777`
+
+***Решение:***
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+void
+swapwords(char *words, int begin, int center, int end)
+{
+	int i;
+	int len1 = center-begin, len2 = end-center-1;
+	char *buf = (char*) malloc(len1*sizeof(char));
+
+	for (i = 0; i < len1; i++)
+	{
+		buf[i] = words[begin+i];
+	}
+
+	for (i = 0; i < len2; i++)
+	{
+		words[begin+i] = words[center+1+i];
+	}
+	words[begin+i] = ',';
+	for (i = 0; i < len1; i++)
+	{
+		words[begin+len2+1+i] = buf[i];
+	}
+	free(buf);
+}
+
+
+void 
+swapstr(char *str)
+{
+	int i, len = strlen(str);
+	if (len != 0)
+	{
+		int begin = 0, center = 0, end = 0;
+		for (i = 0; i <= len; i++)
+		{
+			if (str[i] == ',' || str[i] == '\0')
+			{
+				if (center == 0)
+				{
+					center = i;
+				}
+				else if (end == 0)
+				{
+					end = i;
+					swapwords(str, begin, center, end);
+					begin = i + 1;
+					center = 0;
+					end = 0;
+				}
+			}
+		}
+	}
+}
+
+
+int main()
+{
+	// char a[19] = "ABC,mma,abc777,ebd";
+	// char a[1] = "";
+	char a[44] = "abcd,aaaaaa,qwerty,arctg,ABC,mma,abc777,ebd";
+	printf("%s\n", a);
+	swapstr(a);
+	printf("%s\n", a);
+	return 0;
+}
+
+```
+
+### 3
+
+Запустить процессы в конфигурации, эквивалентной следующей команде `shell`:
+
+```c
+(CMD1 ; CMD2) | (CMD3 || CMD4) >> FILE5
+```
+
+***Решение:***
+
+```c
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/wait.h>
+
+int
+main(int argc, char * argv[])
+{
+	int fd[2];
+	pipe(fd);
+	int status;
+
+	/* (cmd1 ; cmd2) */
+	if (fork() == 0) 
+	{ 
+		dup2(fd[1], 1);
+		close(fd[1]);
+		close(fd[0]);
+
+		/* cmd1 */
+		if (fork() == 0) 
+		{
+			execlp(argv[1], argv[1], NULL);
+			exit(1);
+		}
+		wait(NULL);
+
+		/* cmd2 */
+		if (fork() == 0) 
+		{
+			execlp(argv[2], argv[2], NULL);
+			exit(1);
+		}
+		wait(NULL);
+
+		exit(0);
+	}
+
+	/* (cmd3 || cmd4) */
+	if (fork() == 0) 
+	{
+		dup2(fd[0], 0);
+		close(fd[0]);
+		close(fd[1]);
+
+		/* file5 */
+		int f = open(argv[5], O_CREAT | O_APPEND | O_WRONLY, 0666);
+		dup2(f, 1);
+		close(f);
+   
+		/* cmd3 */
+		if (fork() == 0) 
+		{
+			execlp(argv[3], argv[3], NULL);
+			exit(1);
+		}
+		wait(&status);
+
+		if (!(WIFEXITED(status) && (WEXITSTATUS(status) == 0)))
+		{
+			/* cmd4 */
+			if (fork() == 0) 
+			{
+				execlp(argv[4], argv[4], NULL);
+				exit(1);
+			}
+			wait(NULL);
+		}
+
+		exit(0);
+	}
+
+	close(fd[0]);
+	close(fd[1]);
+
+	wait(NULL);
+	wait(NULL);
+
+	return 0;
+}
+
+```
+
+### 4
+
+Программа должна вывести на стандартный поток вывода свой `PID` и переключиться в режим ожидания поступления сигнала. Каждое поступление сигнала `SIGUSR1` увеличивает значение счётчика на 5. Каждое поступление сигнала `SIGUSR2` уменьшает значение счётчика на 4. Начальное значение счётчика - 32-битового целого числа - равно 0. При поступлении любого из этих сигналов на стандартный поток вывода выводится номер сигнала (значение константы `SIG`) и значение счётчика после изменения.
+
+Если значение счётчика стало отрицательным, программа завершает работу с кодом завершения 0 после вывода значений. Стандартный ввод и стандартный вывод программы будут перенаправлены. С другой стороны каналов находится другой процесс, поторый начнет свою работу, как только получит `pid` процесса.
+
+***Например***, если программе отправляются сигналы `SIGUSR1`, `SIGUSR2`, `SIGUSR2`, то программа должна вывести
+
+```c
+10 5
+12 1
+12 -3
+```
+
+- *25 февраля* были даны задачи из прошлый лет, они разобраны выше. Смотри **2021 - km01-1 (Обработка списка)**, **2022 - km02-2**, **2021 - km01-4 (Конвейер)**
 
 # Другие задачи
 

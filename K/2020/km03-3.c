@@ -2,28 +2,37 @@
 #include <stdlib.h>
 #include <string.h>
 
-int main (void)
+int 
+main(void)
 {
-    char c;
-    unsigned count = 0;
-    unsigned max = 0;
-    while ((c = getchar()) != EOF) {
-        if ('a'<= c && c <= 'z') {
-            if (c != 'q') {
-                count++;
-                if (count > max) {
-                    max = count;
-                }
-            }
-            else
-            {
-                count = 0;
-            }
-            printf("%u", count);
-        } else {
-            count = 0;
-        }
-    }
-    printf("\n");
-    printf("max = %u\n", max);
+	char c;
+	int count = 0, maxx = 0, flag;
+	
+	while ((c = getchar()) && (c != EOF))
+	{
+		if ((c >= 'a') && (c <= 'z'))
+		{
+			if ((c != 'q') && flag) 
+			{
+				count++;
+			}
+			else
+			{
+				//printf("\n q %d\n", count);
+				count = 0;
+				flag = 0;
+			}
+		}
+		else 
+		{
+			if (count > maxx) 
+			{
+				maxx = count;
+			}
+			//printf("\n ne bukva %d\n", count);
+			count = 0;
+			flag = 1;
+		}
+	}
+	printf("\n%d\n", maxx);
 }

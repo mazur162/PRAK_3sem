@@ -4,8 +4,9 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <math.h>
+#include <string.h>
 
-volatile int simple_num = 0;
+volatile long long simple_num = 0;
 volatile int count = 1;
 
 void
@@ -13,7 +14,7 @@ SigHndlr1(int s) {
     if (count == 4) {
         _exit(0);
     }
-    printf("%d\n", simple_num);
+    printf("%lld\n", simple_num);
     count++;
     signal(SIGINT, SigHndlr1); // возобновляю обработчик сигнала
 }
@@ -24,75 +25,70 @@ SigHndlr2(int s) {
 }
 
 int
-main(void) {
-    long long i, j;
-    long long low, high;
+main(void) 
+{
+    long long i, j, low, high, k;
+    int flag;
     scanf("%lld%lld", &low, &high);
-    if (high < 0) {
-        printf("-1\n");
-        return 0;
-    }
 
     signal(SIGINT, SigHndlr1);
     signal(SIGTERM, SigHndlr2);
 
-    int cnt = 0;
+    printf("%d\n", getpid());
 
-    if (low < 2) {
+    if (low < 2) 
+    {
         low = 2;
     }
-    if ((low == 2) && (high >= 2)) {
-        simple_num = 2;
-        printf("%d\n", getpid());
-        cnt = 1;
-        low = 3;
-    }
-    if ((low == 3) && (high >= 3)) {
-        simple_num = 3;
-        if (cnt==0) {
-          printf("%d\n", getpid());
-          cnt = 1;
-        }
-        low = 5;
+
+    if (low >= high) 
+    {
+        printf("-1\n");
+        return 0;
     }
 
-    long long simple_nums[10000] = {3};
-    int p = 1;
+    char *primes = (char *) malloc(sizeof(char)*high); // char primes[high];
+    if (primes == NULL) 
+    {
+        printf("QKRQ\n");
+        return -1;
+    }
+    
+    memset(primes, 0, high);
+    for (i = 0; i < high; i++) 
+    {
+        if (primes[i])
+           printf("QQ\n");
+    }
 
-    int lim_int = sqrt(high) + 1; // макс. число на которое имеет смысл делить
-    for (i = 5; i < high; i += 2) {  //INT_MAX
-        int flag = 0;
-        int k = sqrt(llabs(i)) + 1;
-        j = 0;
-        while (j < p && simple_nums[j] <= k) {
-            if (i % simple_nums[j] == 0) {
-                flag = 1;
-                break;
-            }
-            j++;
-        }
-        if (flag == 0) {
-            if (i>=low) {  
+    for (i = 2; i < high; i++) 
+    {
+        if (!primes[i])
+        {
+            if (i >= low) 
+            {
                 simple_num = i;
-                if (cnt==0) {
-                   printf("%d\n", getpid());
-                   cnt = 1;
-                }
+                printf("%lld\n", simple_num);
             }
-
+            for (j = i; j < high; j += i) 
+            {
+                primes[j] = -1;
+            }
         }
-            if (i <= lim_int) {
-   		   //if (p > sizeof(simple_nums)/sizeof(p[0])) {
-               // чтобы не переполнять массив
-                simple_nums[p] = simple_num;
-                p++;
-               //}
-            } else {
-                if (i < low) {
-                     low = i;
-                }
-            }
     }
+    free(primes);
+    
+    // for (i = low; i < high; i++) {
+    //     flag = 0;
+    //     k = sqrt(abs(i)) + 1;
+    //     for (j = 2; (j < k) && !flag; j += 1) {
+    //         flag = !(i % j);
+    //     }
+    //     if (!flag) {
+    //         simple_num = i;
+    //     }
+    // }
+
     printf("-1\n");
     return 0;
 }
